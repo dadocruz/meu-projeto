@@ -619,7 +619,7 @@ app.get('/api/health', async (_req, res) => {
     await getSpotifyAccessToken();
     res.json({
       ok: true,
-      build: 'spotify-only-2026-04-10-01',
+      build: 'spotify-scrape-2026-04-10-02',
       spotify: true,
       geminiConfigured: Boolean(GEMINI_API_KEY),
       youtubeConfigured: Boolean(YOUTUBE_API_KEY),
