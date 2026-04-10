@@ -453,16 +453,40 @@ function parseSpotifyProxyText(text = '') {
   const monthlyListenersValue = sanitizeNumericText(monthlyMatch?.[1]);
 
   const singles = [];
-  const rowRegex = /\[([^\]]+)\]\(https?:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)\)\s*\n\s*\n\s*([0-9][0-9.,]*)/g;
-  let m;
-  while ((m = rowRegex.exec(raw)) && singles.length < 5) {
-    singles.push({
-      title: String(m[1] || '').trim() || 'Single',
-      plays: sanitizeNumericText(m[3]),
-      releaseDate: null,
-      spotifyUrl: `https://open.spotify.com/track/${m[2]}`,
-      coverUrl: null,
-    });
+  const lines = raw.split(/\r?\n/);
+  let pendingCoverUrl = null;
+  let pendingTrack = null;
+
+  for (const line of lines) {
+    const imageMatch = line.match(/^!\[[^\]]*\]\((https?:\/\/[^)]+)\)$/i);
+    if (imageMatch) {
+      pendingCoverUrl = imageMatch[1];
+      continue;
+    }
+
+    const trackMatch = line.match(/^\[([^\]]+)\]\(https?:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)\)$/i);
+    if (trackMatch) {
+      pendingTrack = {
+        title: String(trackMatch[1] || '').trim() || 'Single',
+        spotifyUrl: `https://open.spotify.com/track/${trackMatch[2]}`,
+        coverUrl: pendingCoverUrl,
+      };
+      pendingCoverUrl = null;
+      continue;
+    }
+
+    if (pendingTrack) {
+      const playCount = sanitizeNumericText(line);
+      if (playCount !== null) {
+        singles.push({
+          ...pendingTrack,
+          plays: playCount,
+          releaseDate: null,
+        });
+        pendingTrack = null;
+        if (singles.length >= 5) break;
+      }
+    }
   }
 
   if (monthlyListenersValue == null && !singles.length) return null;
