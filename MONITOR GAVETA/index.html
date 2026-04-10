@@ -572,9 +572,11 @@
 
   function computePriorityLocal(artist) {
     let score = 0;
+    score += Number(artist?.spotify?.monthlyListeners?.value || 0) / 100000;
     score += Number(artist?.spotify?.popularity || 0) / 100;
     score += Number(artist?.youtube?.channelViews || 0) / 10000000;
     score += Number(artist?.spotify?.followers || 0) / 200000;
+    score += Number(artist?.spotify?.singles?.[0]?.plays || 0) / 1000000;
     score += Number(artist?.spotify?.topTracks?.[0]?.popularity || 0) / 100;
     score += Number(artist?.youtube?.latestVideos?.[0]?.views || 0) / 1000000;
     return score;
@@ -586,6 +588,7 @@
       .map(item => ({
         artistName: item.artistName,
         imageUrl: item.imageUrl,
+        monthlyListeners: item.spotify?.monthlyListeners?.value || 0,
         spotifyPopularity: item.spotify?.popularity || 0,
         youtubeViews: item.youtube?.channelViews || 0,
         priorityScore: computePriorityLocal(item),
@@ -875,8 +878,10 @@
 
     const sp = a.spotify || {};
     const yt = a.youtube || {};
+    const ml = sp.monthlyListeners || null;
     const popularity = sp.popularity || null;
     const fl = sp.followers || null;
+    const singles = Array.isArray(sp.singles) ? sp.singles : [];
     const topTracks = Array.isArray(sp.topTracks) ? sp.topTracks : [];
     const vids = Array.isArray(yt.latestVideos) ? yt.latestVideos : [];
 
@@ -901,18 +906,18 @@
             <div class="plat-head"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M6 9.5c3.8-1.1 8.2-.8 11.8 1" stroke="#0B0B10" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M6.8 12.4c3.1-.8 6.7-.6 9.6.8" stroke="#0B0B10" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M7.6 15c2.2-.5 4.7-.4 6.8.5" stroke="#0B0B10" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg> Spotify</div>
             <div class="plat-metrics">
               <div class="mc">
-                <div class="mc-k">Popularidade</div>
-                <div class="mc-v">${popularity !== null ? `${popularity}/100` : '--'}</div>
-                <div class="mc-s">Métrica Spotify</div>
+                <div class="mc-k">Ouvintes mensais</div>
+                <div class="mc-v">${compact(ml?.value)}</div>
+                <div class="mc-s">${esc(ml?.source === 'gemini-web' ? 'Estimado via Gemini' : ml?.source || '') || '&nbsp;'}</div>
               </div>
               <div class="mc">
                 <div class="mc-k">Seguidores</div>
                 <div class="mc-v">${compact(fl)}</div>
-                <div class="mc-s">Canal Spotify</div>
+                <div class="mc-s">${popularity !== null ? `Popularidade ${popularity}/100` : 'Canal Spotify'}</div>
               </div>
             </div>
             <div class="media-list">
-              ${topTracks.length ? topTracks.map(t => `
+              ${(singles.length ? singles.map(singleRow).join('') : '').trim() || (topTracks.length ? topTracks.map(t => `
                 <div class="media-row">
                   <a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
                     <img class="media-thumb" src="${esc(t.imageUrl || '')}" alt="${esc(t.title || 'Track')}" loading="lazy">
@@ -925,7 +930,7 @@
                     <div class="media-num">${t.popularity || '--'}</div><div class="media-lbl">pop.</div>
                   </div>
                 </div>
-              `).join('') : '<div class="empty">Sem top tracks.</div>'}
+              `).join('') : '<div class="empty">Sem singles/top tracks.</div>')}
             </div>
           </div>
 
@@ -965,7 +970,7 @@
         <img src="${esc(item.imageUrl || '')}" alt="${esc(item.artistName || 'Artista')}" loading="lazy">
         <div class="rank-meta">
           <h4>${esc(item.artistName || 'Artista')}</h4>
-          <p>SP ${item.spotifyPopularity} · YT ${compact(item.youtubeViews)}</p>
+          <p>SP ${item.monthlyListeners ? compact(item.monthlyListeners) : item.spotifyPopularity} · YT ${compact(item.youtubeViews)}</p>
         </div>
       </div>
     `).join('');

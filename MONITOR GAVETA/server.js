@@ -13,6 +13,7 @@ app.use(express.json({ limit: '1mb' }));
 const {
   SPOTIFY_CLIENT_ID,
   SPOTIFY_CLIENT_SECRET,
+  GEMINI_API_KEY,
   YOUTUBE_API_KEY,
   PORT = 3000,
   MAX_ARTISTS_PER_REFRESH,
@@ -29,6 +30,7 @@ const TTL = {
   artistData: 12 * 60 * 60 * 1000,
   topTracks: 12 * 60 * 60 * 1000,
   recentReleases: 12 * 60 * 60 * 1000,
+  geminiSignals: 6 * 60 * 60 * 1000,
   youtube: 6 * 60 * 60 * 1000,
 };
 
@@ -341,6 +343,93 @@ async function getRecentReleases(spotifyArtistId) {
   });
 }
 
+function sanitizeNumericText(value) {
+  if (value === null || value === undefined) return null;
+  const normalized = String(value).replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(',', '.');
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : null;
+}
+
+function parseGeminiJsonText(raw = '') {
+  const text = String(raw || '').trim();
+  if (!text) return null;
+
+  const codeBlock = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = codeBlock ? codeBlock[1].trim() : text;
+
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeGeminiSingles(singles, spotifyArtistUrl) {
+  if (!Array.isArray(singles)) return [];
+
+  return singles.slice(0, 5).map(item => {
+    const title = String(item?.title || item?.name || '').trim() || 'Single';
+    const plays = sanitizeNumericText(item?.plays);
+    const releaseDate = String(item?.releaseDate || item?.date || '').trim() || null;
+    const spotifyUrl = String(item?.spotifyUrl || '').trim() || spotifyArtistUrl;
+    const coverUrl = String(item?.coverUrl || item?.imageUrl || '').trim() || null;
+    return { title, plays, releaseDate, spotifyUrl, coverUrl };
+  });
+}
+
+async function getGeminiSpotifySignals(artistName, spotifyArtistUrl) {
+  if (!GEMINI_API_KEY) return null;
+
+  const key = `gemini:spotify-signals:${artistName.toLowerCase()}:${spotifyArtistUrl}`;
+  return remember(key, TTL.geminiSignals, async () => {
+    const prompt = [
+      'Busque na web dados recentes de Spotify para este artista e retorne somente JSON válido.',
+      `Artista: ${artistName}`,
+      `URL Spotify: ${spotifyArtistUrl}`,
+      'Formato JSON obrigatório:',
+      '{',
+      '  "monthlyListeners": number|null,',
+      '  "singles": [',
+      '    {"title": string, "plays": number|null, "releaseDate": string|null, "spotifyUrl": string|null, "coverUrl": string|null}',
+      '  ]',
+      '}',
+      'Regras: sem markdown, sem texto extra. Use null se não tiver confiança no valor.'
+    ].join('\n');
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const msg = (await res.text()).slice(0, 240);
+      throw new Error(`Gemini ${res.status}: ${msg}`);
+    }
+
+    const data = await res.json();
+    const rawText = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('\n').trim();
+    const parsed = parseGeminiJsonText(rawText);
+    if (!parsed) return null;
+
+    const monthlyListenersValue = sanitizeNumericText(parsed.monthlyListeners);
+    const singles = normalizeGeminiSingles(parsed.singles, spotifyArtistUrl);
+
+    return {
+      monthlyListenersValue,
+      singles,
+      source: 'gemini-web',
+    };
+  });
+}
+
 async function youtubeGet(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`YT ${res.status}: ${(await res.text()).slice(0, 260)}`);
@@ -431,9 +520,11 @@ async function getYouTubeChannelBundle(channelUrl) {
 
 function computePriority(artist) {
   let score = 0;
+  score += Number(artist.spotify?.monthlyListeners?.value || 0) / 100000;
   score += Number(artist.spotify?.popularity || 0) / 100;
   score += Number(artist.youtube?.channelViews || 0) / 10000000;
   score += Number(artist.spotify?.followers || 0) / 200000;
+  score += Number(artist.spotify?.singles?.[0]?.plays || 0) / 1000000;
   score += Number(artist.spotify?.topTracks?.[0]?.popularity || 0) / 100;
   score += Number(artist.youtube?.latestVideos?.[0]?.views || 0) / 1000000;
   return score;
@@ -459,6 +550,7 @@ app.get('/api/health', async (_req, res) => {
       ok: true,
       build: 'spotify-only-2026-04-10-01',
       spotify: true,
+      geminiConfigured: Boolean(GEMINI_API_KEY),
       youtubeConfigured: Boolean(YOUTUBE_API_KEY),
       cacheEntries: cache.size,
       artistsStorage: supabaseEnabled ? 'supabase' : 'local-file',
@@ -518,22 +610,28 @@ app.post('/api/dashboard', async (req, res) => {
       }
 
       try {
-        const [artistData, topTracks, recentReleases, youtube] = await Promise.all([
+        const spotifyArtistUrl = `https://open.spotify.com/artist/${spotifyArtistId}`;
+        const [artistData, topTracks, recentReleases, youtube, geminiSignals] = await Promise.all([
           getArtistData(spotifyArtistId),
           getTopTracks(spotifyArtistId),
           getRecentReleases(spotifyArtistId),
           getYouTubeChannelBundle(youtubeUrl),
+          getGeminiSpotifySignals(artistName, spotifyArtistUrl).catch(() => null),
         ]);
 
         return {
           artistName,
           spotifyArtistId,
-          spotifyArtistUrl: `https://open.spotify.com/artist/${spotifyArtistId}`,
+          spotifyArtistUrl,
           fetchedAt: new Date().toISOString(),
           imageUrl: artistData.imageUrl || youtube.thumbnail || null,
           spotify: { 
+            monthlyListeners: geminiSignals?.monthlyListenersValue != null
+              ? { value: geminiSignals.monthlyListenersValue, source: geminiSignals.source }
+              : null,
             popularity: artistData.popularity, 
             followers: artistData.followers, 
+            singles: geminiSignals?.singles || [],
             topTracks,
             recentReleases,
           },
@@ -556,6 +654,7 @@ app.post('/api/dashboard', async (req, res) => {
       .map(artist => ({
         artistName: artist.artistName,
         imageUrl: artist.imageUrl,
+        monthlyListeners: artist.spotify?.monthlyListeners?.value || 0,
         spotifyPopularity: artist.spotify?.popularity || 0,
         youtubeViews: artist.youtube?.channelViews || 0,
         priorityScore: computePriority(artist),
