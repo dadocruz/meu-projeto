@@ -364,6 +364,77 @@ function parseGeminiJsonText(raw = '') {
   }
 }
 
+function spotifyUriToWebUrl(uri = '') {
+  const value = String(uri || '').trim();
+  const m = value.match(/^spotify:(artist|album|track):([A-Za-z0-9]+)$/i);
+  if (!m) return null;
+  return `https://open.spotify.com/${m[1].toLowerCase()}/${m[2]}`;
+}
+
+function parseSpotifyInitialState(html, spotifyArtistId) {
+  const marker = /<script id="initialState" type="text\/plain">([\s\S]*?)<\/script>/i;
+  const match = String(html || '').match(marker);
+  if (!match?.[1]) return null;
+
+  const decoded = Buffer.from(match[1].trim(), 'base64').toString('utf8');
+  const parsed = JSON.parse(decoded);
+  const artistKey = `spotify:artist:${spotifyArtistId}`;
+  const artist = parsed?.entities?.items?.[artistKey];
+  if (!artist) return null;
+
+  const monthlyListenersValue = compactNumber(artist?.stats?.monthlyListeners);
+  const topTracks = Array.isArray(artist?.discography?.topTracks?.items)
+    ? artist.discography.topTracks.items
+    : [];
+
+  const singles = topTracks.slice(0, 5).map(row => {
+    const track = row?.track || {};
+    const title = String(track?.name || '').trim() || 'Single';
+    const plays = compactNumber(track?.playcount);
+    const coverUrl = track?.albumOfTrack?.coverArt?.sources?.[1]?.url
+      || track?.albumOfTrack?.coverArt?.sources?.[0]?.url
+      || null;
+    const spotifyUrl = spotifyUriToWebUrl(track?.uri) || null;
+
+    return {
+      title,
+      plays,
+      releaseDate: null,
+      spotifyUrl,
+      coverUrl,
+    };
+  }).filter(item => item.title);
+
+  return {
+    monthlyListenersValue,
+    singles,
+    source: 'spotify-page',
+  };
+}
+
+async function getSpotifyPublicSignals(artistName, spotifyArtistId) {
+  const key = `spotify:public-signals:${spotifyArtistId}`;
+  return remember(key, TTL.geminiSignals, async () => {
+    const artistUrl = `https://open.spotify.com/artist/${spotifyArtistId}`;
+    const res = await fetch(artistUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`Spotify page ${res.status} for ${artistName}`);
+    }
+
+    const html = await res.text();
+    const signals = parseSpotifyInitialState(html, spotifyArtistId);
+    if (!signals) return null;
+
+    return signals;
+  });
+}
+
 function normalizeGeminiSingles(singles, spotifyArtistUrl) {
   if (!Array.isArray(singles)) return [];
 
@@ -611,13 +682,20 @@ app.post('/api/dashboard', async (req, res) => {
 
       try {
         const spotifyArtistUrl = `https://open.spotify.com/artist/${spotifyArtistId}`;
-        const [artistData, topTracks, recentReleases, youtube, geminiSignals] = await Promise.all([
+        const [artistData, topTracks, recentReleases, youtube, spotifyPublicSignals, geminiSignals] = await Promise.all([
           getArtistData(spotifyArtistId),
           getTopTracks(spotifyArtistId),
           getRecentReleases(spotifyArtistId),
           getYouTubeChannelBundle(youtubeUrl),
+          getSpotifyPublicSignals(artistName, spotifyArtistId).catch(() => null),
           getGeminiSpotifySignals(artistName, spotifyArtistUrl).catch(() => null),
         ]);
+
+        const listenersValue = spotifyPublicSignals?.monthlyListenersValue ?? geminiSignals?.monthlyListenersValue ?? null;
+        const listenersSource = spotifyPublicSignals?.source || geminiSignals?.source || null;
+        const singles = Array.isArray(spotifyPublicSignals?.singles) && spotifyPublicSignals.singles.length
+          ? spotifyPublicSignals.singles
+          : (geminiSignals?.singles || []);
 
         return {
           artistName,
@@ -626,12 +704,12 @@ app.post('/api/dashboard', async (req, res) => {
           fetchedAt: new Date().toISOString(),
           imageUrl: artistData.imageUrl || youtube.thumbnail || null,
           spotify: { 
-            monthlyListeners: geminiSignals?.monthlyListenersValue != null
-              ? { value: geminiSignals.monthlyListenersValue, source: geminiSignals.source }
+            monthlyListeners: listenersValue != null
+              ? { value: listenersValue, source: listenersSource }
               : null,
             popularity: artistData.popularity, 
             followers: artistData.followers, 
-            singles: geminiSignals?.singles || [],
+            singles,
             topTracks,
             recentReleases,
           },

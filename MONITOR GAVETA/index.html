@@ -908,7 +908,7 @@
               <div class="mc">
                 <div class="mc-k">Ouvintes mensais</div>
                 <div class="mc-v">${compact(ml?.value)}</div>
-                <div class="mc-s">${esc(ml?.source === 'gemini-web' ? 'Estimado via Gemini' : ml?.source || '') || '&nbsp;'}</div>
+                <div class="mc-s">${esc(ml?.source === 'gemini-web' ? 'Estimado via Gemini' : (ml?.source === 'spotify-page' ? 'Coletado da pagina Spotify' : (ml?.source || ''))) || '&nbsp;'}</div>
               </div>
               <div class="mc">
                 <div class="mc-k">Seguidores</div>
