@@ -345,8 +345,9 @@ async function getRecentReleases(spotifyArtistId) {
 
 function sanitizeNumericText(value) {
   if (value === null || value === undefined) return null;
-  const normalized = String(value).replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(',', '.');
-  const num = Number(normalized);
+  const parts = String(value).match(/[0-9]+/g);
+  if (!parts || !parts.length) return null;
+  const num = Number(parts.join(''));
   return Number.isFinite(num) ? num : null;
 }
 
@@ -444,6 +445,34 @@ function parseSpotifyHtmlFallback(html = '') {
   };
 }
 
+function parseSpotifyProxyText(text = '') {
+  const raw = String(text || '');
+  if (!raw) return null;
+
+  const monthlyMatch = raw.match(/([0-9][0-9.,]*)\s+monthly listeners/i);
+  const monthlyListenersValue = sanitizeNumericText(monthlyMatch?.[1]);
+
+  const singles = [];
+  const rowRegex = /\[([^\]]+)\]\(https?:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)\)\s*\n\s*\n\s*([0-9][0-9.,]*)/g;
+  let m;
+  while ((m = rowRegex.exec(raw)) && singles.length < 5) {
+    singles.push({
+      title: String(m[1] || '').trim() || 'Single',
+      plays: sanitizeNumericText(m[3]),
+      releaseDate: null,
+      spotifyUrl: `https://open.spotify.com/track/${m[2]}`,
+      coverUrl: null,
+    });
+  }
+
+  if (monthlyListenersValue == null && !singles.length) return null;
+  return {
+    monthlyListenersValue,
+    singles,
+    source: 'spotify-page-proxy',
+  };
+}
+
 async function getSpotifyPublicSignals(artistName, spotifyArtistId) {
   const key = `spotify:public-signals:${spotifyArtistId}`;
   return remember(key, TTL.geminiSignals, async () => {
@@ -460,8 +489,26 @@ async function getSpotifyPublicSignals(artistName, spotifyArtistId) {
     }
 
     const html = await res.text();
-    const signals = parseSpotifyInitialState(html, spotifyArtistId)
+    let signals = parseSpotifyInitialState(html, spotifyArtistId)
       || parseSpotifyHtmlFallback(html);
+
+    if (!signals || (signals.monthlyListenersValue == null && (!Array.isArray(signals.singles) || !signals.singles.length))) {
+      try {
+        const proxyRes = await fetch(`https://r.jina.ai/http://open.spotify.com/artist/${spotifyArtistId}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+        });
+        if (proxyRes.ok) {
+          const proxyText = await proxyRes.text();
+          signals = parseSpotifyProxyText(proxyText) || signals;
+        }
+      } catch {
+        // fallback silencioso
+      }
+    }
+
     if (!signals) return null;
 
     return signals;
@@ -652,7 +699,7 @@ app.get('/api/health', async (_req, res) => {
     await getSpotifyAccessToken();
     res.json({
       ok: true,
-      build: 'spotify-scrape-2026-04-10-03',
+      build: 'spotify-scrape-2026-04-10-04',
       spotify: true,
       geminiConfigured: Boolean(GEMINI_API_KEY),
       youtubeConfigured: Boolean(YOUTUBE_API_KEY),
