@@ -412,6 +412,38 @@ function parseSpotifyInitialState(html, spotifyArtistId) {
   };
 }
 
+function parseSpotifyHtmlFallback(html = '') {
+  const sourceHtml = String(html || '');
+  if (!sourceHtml) return null;
+
+  const monthlyMatch = sourceHtml.match(/([0-9][0-9.,]*)\s+monthly listeners/i)
+    || sourceHtml.match(/data-testid="monthly-listeners-label"[^>]*>([^<]+)</i);
+  const monthlyListenersValue = sanitizeNumericText(monthlyMatch?.[1]);
+
+  const singles = [];
+  const rowRegex = /data-testid="track-row"[\s\S]*?aria-label="([^"]+)"[\s\S]*?id="listrow-title-track-spotify:track:([A-Za-z0-9]+)-[0-9]+"[\s\S]*?<span class="e-10180-text encore-text-body-small[^>]*>([0-9.,]+)<\/span>/g;
+  let m;
+  while ((m = rowRegex.exec(sourceHtml)) && singles.length < 5) {
+    const title = String(m[1] || '').trim() || 'Single';
+    const trackId = String(m[2] || '').trim();
+    const plays = sanitizeNumericText(m[3]);
+    singles.push({
+      title,
+      plays,
+      releaseDate: null,
+      spotifyUrl: trackId ? `https://open.spotify.com/track/${trackId}` : null,
+      coverUrl: null,
+    });
+  }
+
+  if (monthlyListenersValue == null && !singles.length) return null;
+  return {
+    monthlyListenersValue,
+    singles,
+    source: 'spotify-page',
+  };
+}
+
 async function getSpotifyPublicSignals(artistName, spotifyArtistId) {
   const key = `spotify:public-signals:${spotifyArtistId}`;
   return remember(key, TTL.geminiSignals, async () => {
@@ -428,7 +460,8 @@ async function getSpotifyPublicSignals(artistName, spotifyArtistId) {
     }
 
     const html = await res.text();
-    const signals = parseSpotifyInitialState(html, spotifyArtistId);
+    const signals = parseSpotifyInitialState(html, spotifyArtistId)
+      || parseSpotifyHtmlFallback(html);
     if (!signals) return null;
 
     return signals;
@@ -619,7 +652,7 @@ app.get('/api/health', async (_req, res) => {
     await getSpotifyAccessToken();
     res.json({
       ok: true,
-      build: 'spotify-scrape-2026-04-10-02',
+      build: 'spotify-scrape-2026-04-10-03',
       spotify: true,
       geminiConfigured: Boolean(GEMINI_API_KEY),
       youtubeConfigured: Boolean(YOUTUBE_API_KEY),
