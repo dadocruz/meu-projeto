@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório dos Artistas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#060606;--panel:#101014;--panel2:#13131a;
+      --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
+      --txt:#fff;--muted:rgba(255,255,255,.6);--soft:rgba(255,255,255,.34);
+      --spotify:#1db954;--youtube:#ff0033;--red:#ef233c;--orange:#ff6b00;
+      --radius:20px;--shadow:0 16px 48px rgba(0,0,0,.44)
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:radial-gradient(ellipse at top,#18181c 0,#0a0a0d 40%,#040405 100%);color:var(--txt);font-family:Inter,sans-serif;min-height:100vh}
+    body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(circle at center,black 40%,transparent 90%)}
+    button,input{font:inherit} a{color:inherit;text-decoration:none}
+    .hidden{display:none!important}
+
+    .header{position:sticky;top:0;z-index:40;background:rgba(6,6,9,.88);backdrop-filter:blur(24px);border-bottom:1px solid var(--line)}
+    .header-inner,.wrap{max-width:1720px;margin:0 auto;padding:0 28px}
+    .header-inner{height:74px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#ff2244,#aa0018);display:grid;place-items:center;font:800 21px/1 Syne,sans-serif;box-shadow:0 6px 22px rgba(255,0,60,.38);flex-shrink:0}
+    .brand h1{margin:0;font:800 20px/1 Syne,sans-serif}
+    .brand p{margin:3px 0 0;color:var(--muted);font-size:11px}
+    .actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+    .chip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);font-size:11px;white-space:nowrap}
+    .btn{border:0;border-radius:11px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;transition:.14s}
+    .btn:hover{transform:translateY(-1px);filter:brightness(1.12)}
+    .btn.red{background:#ef233c;color:#fff;box-shadow:0 5px 18px rgba(239,35,60,.38)}
+    .btn.dark{background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line2)}
+    .btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
+    .menu-toggle{display:none;align-items:center;justify-content:center;gap:8px;min-width:42px;height:42px;padding:0 12px}
+    .menu-toggle .bar{width:16px;height:2px;background:#fff;border-radius:999px;display:block}
+    .menu-toggle .bars{display:grid;gap:3px}
+
+    .menu-drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);z-index:90}
+    .menu-drawer{position:fixed;top:0;right:0;height:100%;width:min(360px,88vw);background:#0b0b10;border-left:1px solid var(--line2);z-index:100;display:flex;flex-direction:column;box-shadow:-16px 0 42px rgba(0,0,0,.35)}
+    .menu-drawer-head{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+    .menu-drawer-head h3{margin:0 0 4px;font:800 20px/1 Syne,sans-serif}
+    .menu-drawer-head p{margin:0;color:var(--muted);font-size:12px}
+    .menu-drawer-body{padding:14px 16px;display:grid;gap:10px;overflow:auto}
+    .menu-drawer .btn{width:100%;justify-content:center}
+    .menu-drawer-footer{padding:14px 16px;border-top:1px solid var(--line);display:flex;gap:10px}
+    .menu-drawer-footer .btn{flex:1}
+
+    .wrap{padding-top:20px;padding-bottom:40px}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:18px;align-items:start}
+    .left-col{min-width:0;display:flex;flex-direction:column;gap:20px}
+
+    .traffic-section{display:flex;flex-direction:column;gap:10px}
+    .traffic-head{display:flex;align-items:center;gap:10px}
+    .traffic-head h2{margin:0;font:800 18px/1 Syne,sans-serif;color:#fff}
+    .traffic-badge{background:#ff6b00;color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.06em}
+    .traffic-card{display:grid;grid-template-columns:72px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:rgba(255,107,0,.06);border:1px solid rgba(255,107,0,.25);transition:.15s;cursor:pointer}
+    .traffic-card:hover{background:rgba(255,107,0,.12);border-color:rgba(255,107,0,.45)}
+    .traffic-thumb{width:72px;height:42px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .traffic-info{min-width:0}
+    .traffic-artist{font-size:10px;font-weight:800;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+    .traffic-title{font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .traffic-meta{font-size:11px;color:var(--muted);margin-top:2px}
+    .traffic-cta{flex-shrink:0;text-align:center}
+    .traffic-cta .cta-label{background:#ff6b00;color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:8px;white-space:nowrap;display:block}
+    .traffic-cta .cta-views{font-size:10px;color:var(--soft);margin-top:4px;text-align:center}
+
+    .section-head{margin:0}
+    .section-head h2{margin:0 0 3px;font:800 21px/1 Syne,sans-serif}
+    .section-head p{margin:0;color:var(--muted);font-size:12px}
+
+    .artist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.014));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .artist-card{overflow:hidden}
+
+    .artist-top{display:flex;gap:12px;align-items:center;padding:16px 16px 10px}
+    .artist-avatar{width:54px;height:54px;border-radius:14px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .artist-info{min-width:0;flex:1}
+    .artist-name{font:800 17px/1.1 Syne,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 3px}
+    .artist-name a:hover{text-decoration:underline;opacity:.85}
+    .artist-ts{font-size:10px;color:var(--muted)}
+    .pill-row{display:flex;gap:6px;padding:0 16px 12px}
+    .tag{padding:4px 9px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid;display:inline-flex;align-items:center;gap:5px}
+    .tag svg{width:10px;height:10px;display:block}
+    .tag.sp{border-color:rgba(29,185,84,.3);color:#7ddf9d}
+    .tag.yt{border-color:rgba(255,0,51,.28);color:#ff8fa3}
+
+    .platforms{padding:0 12px 14px;display:flex;flex-direction:column;gap:10px}
+    .platform{border-radius:14px;border:1px solid var(--line);overflow:hidden}
+    .platform.sp-block{border-color:rgba(29,185,84,.14)}
+    .platform.yt-block{border-color:rgba(255,0,51,.12)}
+
+    .plat-head{display:flex;align-items:center;gap:7px;padding:10px 13px;border-bottom:1px solid var(--line);font:800 9px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+    .plat-head svg{width:12px;height:12px;display:block}
+    .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .dot.sp{background:var(--spotify)} .dot.yt{background:var(--youtube)}
+
+    .plat-metrics{display:flex;border-bottom:1px solid var(--line)}
+    .mc{flex:1;padding:11px 13px;min-width:0;border-right:1px solid var(--line)}
+    .mc:last-child{border-right:none}
+    .mc-k{font:800 9px/1 Inter,sans-serif;letter-spacing:.11em;text-transform:uppercase;color:var(--soft);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mc-v{font:800 20px/1 Syne,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mc-s{margin-top:4px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .delta{font-size:9px;font-weight:700}
+    .up{color:#6ddf9e} .dn{color:#ff8fa3} .neu{color:var(--soft)}
+
+    .media-list{display:grid;gap:0}
+    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:center;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
+    .media-row:hover{background:rgba(255,255,255,.03)}
+    .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .media-thumb.yt-thumb{height:30px;border-radius:6px}
+    .media-info{min-width:0}
+    .media-title{font-size:12px;font-weight:700;line-height:1.3;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .media-title a:hover{text-decoration:underline;opacity:.8}
+    .media-date{font-size:10px;color:var(--muted)}
+    .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
+    .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
+    .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
+    .no-data{font-size:10px;color:var(--soft);font-style:italic}
+    .traffic-tag{display:inline-block;background:rgba(255,107,0,.18);border:1px solid rgba(255,107,0,.4);color:#ff9a50;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-top:3px;letter-spacing:.06em}
+
+    .ranking{position:sticky;top:88px}
+    .ranking .inner{padding:16px}
+    .ranking h3{margin:0 0 3px;font:800 18px/1 Syne,sans-serif}
+    .rank-desc{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.4}
+    .rank-list{display:grid;gap:7px}
+    .rank-item{display:grid;grid-template-columns:26px 34px minmax(0,1fr);gap:8px;align-items:center;padding:9px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid var(--line)}
+    .rank-pos{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.06);font:800 11px/1 Syne,sans-serif;flex-shrink:0}
+    .rank-item img{width:34px;height:34px;border-radius:8px;object-fit:cover;background:#111;flex-shrink:0}
+    .rank-meta h4{margin:0 0 2px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .rank-meta p{margin:0;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .info-box{margin-top:18px;padding:13px 14px;border-radius:13px;background:rgba(29,185,84,.05);border:1px solid rgba(29,185,84,.15);font-size:11px;color:var(--muted);line-height:1.6}
+    .info-box strong{color:var(--spotify);font-size:10px;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px}
+
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.58);backdrop-filter:blur(5px);z-index:70}
+    .drawer{position:fixed;right:0;top:0;height:100%;width:min(430px,96vw);background:#0b0b10;border-left:1px solid var(--line2);z-index:80;display:flex;flex-direction:column}
+    .drawer-head{padding:20px 22px 13px;border-bottom:1px solid var(--line)}
+    .drawer-head h3{margin:0 0 6px;font:800 21px/1 Syne,sans-serif}
+    .drawer-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+    .drawer-body{padding:16px 22px;overflow:auto;display:grid;gap:14px}
+    .field label{display:block;margin:0 0 7px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:800}
+    .input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#12121a;color:#fff;outline:none;transition:.14s}
+    .input:focus{border-color:var(--line2);background:#15151e}
+    .hint{color:var(--muted);font-size:11px;line-height:1.5;padding:10px 13px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+    .form-error{color:#ff9cab;font-size:12px;line-height:1.45}
+    .drawer-footer{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-shrink:0}
+    .saved-item{padding:12px;border-radius:13px;background:#10101a;border:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+    .saved-item h4{margin:0 0 3px;font-size:14px}
+    .saved-item p{margin:0;color:var(--muted);font-size:10px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .empty{padding:24px;text-align:center;color:var(--muted);font-size:12px}
+    .error-card{padding:16px;color:#ff9cab;font-size:12px;line-height:1.5}
+    .footer-note{color:var(--soft);font-size:11px;line-height:1.6}
+
+    .auth-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:radial-gradient(circle at 20% 20%,rgba(255,31,38,.12),transparent 40%),rgba(5,5,8,.96)}
+    .auth-card{width:min(420px,92vw);padding:24px;border-radius:18px;border:1px solid var(--line2);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));box-shadow:var(--shadow)}
+    .auth-title{margin:0 0 6px;font:800 24px/1 Syne,sans-serif}
+    .auth-sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+    .auth-row{display:flex;gap:8px}
+    .auth-input{flex:1;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#12121a;color:#fff;outline:none}
+    .auth-input:focus{border-color:var(--line2)}
+    .auth-error{margin-top:10px;color:#ff9cab;font-size:12px;min-height:16px}
+
+    @media(max-width:1200px){.artist-grid{grid-template-columns:1fr}}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.ranking{position:static}.artist-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:720px){
+      .header-inner,.wrap{padding-left:14px;padding-right:14px}
+      .artist-grid{grid-template-columns:1fr}
+      .brand p{display:none}
+      .actions{display:none}
+      .menu-toggle{display:inline-flex}
+      .header-inner{gap:10px}
+      .brand h1{font-size:18px}
+      .ranking{position:static}
+    }
+    @media(min-width:721px){.menu-drawer,.menu-drawer-backdrop{display:none!important}}
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="mark">G</div>
+      <div>
+        <h1>Monitoramento dos artistas</h1>
+        <p>Spotify e YouTube para decisão rápida de arte e tráfego.</p>
+      </div>
+    </div>
+    <button class="btn dark menu-toggle" id="menuBtn" aria-label="Abrir menu">
+      <span class="bars" aria-hidden="true"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span>
+    </button>
+    <div class="actions">
+      <div class="chip" id="lastSync">Carregando...</div>
+      <button class="btn dark" id="refreshBtn">Atualizar agora</button>
+      <button class="btn dark" id="exportBtn">Exportar lista</button>
+      <button class="btn dark" id="importBtn">Importar lista</button>
+      <button class="btn dark" id="manageBtn">Artistas</button>
+      <button class="btn red" id="addBtn">+ Cadastrar</button>
+      <input id="importInput" type="file" accept="application/json" class="hidden" />
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <section class="left-col">
+
+      <div id="trafficSection" class="traffic-section hidden">
+        <div class="traffic-head">
+          <h2>Rodar tráfego agora</h2>
+          <span class="traffic-badge" id="trafficCount">0</span>
+        </div>
+        <div id="trafficList"></div>
+      </div>
+      <div class="artist-grid" id="artistGrid"></div>
+      <div class="footer-note">Desenvolvido por Dado Cruz.</div>
+    </section>
+
+    <aside class="ranking">
+      <div class="card">
+        <div class="inner">
+          <h3>Ranking</h3>
+          <p class="rank-desc">Prioridade criativa estimada por Spotify + YouTube.</p>
+          <div class="rank-list" id="ranking"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="menu-drawer-backdrop hidden" id="menuBackdrop"></div>
+<aside class="menu-drawer hidden" id="menuDrawer" aria-label="Menu do painel">
+  <div class="menu-drawer-head">
+    <h3>Menu</h3>
+    <p>Ações rápidas do painel.</p>
+  </div>
+  <div class="menu-drawer-body">
+    <button class="btn dark" id="menuRefreshBtn">Atualizar agora</button>
+    <button class="btn dark" id="menuExportBtn">Exportar lista</button>
+    <button class="btn dark" id="menuImportBtn">Importar lista</button>
+    <button class="btn dark" id="menuManageBtn">Artistas</button>
+    <button class="btn red" id="menuAddBtn">+ Cadastrar</button>
+  </div>
+  <div class="menu-drawer-footer">
+    <button class="btn dark" id="menuCloseBtn">Fechar</button>
+  </div>
+</aside>
+
+<div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+<aside class="drawer hidden" id="addDrawer">
+  <div class="drawer-head">
+    <h3>Cadastrar artista</h3>
+    <p>Nome manual obrigatório para evitar confusão.</p>
+  </div>
+  <div class="drawer-body">
+    <div class="field"><label>Nome do artista</label><input class="input" id="artistName" placeholder="Ex.: Julio Torres"></div>
+    <div class="field"><label>Link do artista no Spotify</label><input class="input" id="spotifyUrl" placeholder="https://open.spotify.com/artist/..." /></div>
+    <div class="field"><label>Link do canal do YouTube</label><input class="input" id="youtubeUrl" placeholder="https://www.youtube.com/@handle" /></div>
+    <div class="hint">
+      YouTube aceita:<br>
+      youtube.com/@handle, youtube.com/c/nome,<br>
+      youtube.com/user/nome, youtube.com/channel/UCxxx
+    </div>
+    <div class="form-error hidden" id="formError"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn dark" id="closeAdd">Fechar</button>
+    <button class="btn red" id="saveArtist">Salvar artista</button>
+  </div>
+</aside>
+
+<aside class="drawer hidden" id="manageDrawer">
+  <div class="drawer-head">
+    <h3>Lista de artistas</h3>
+    <p>Remova artistas individualmente.</p>
+  </div>
+  <div class="drawer-body" id="savedArtistsList"></div>
+  <div class="drawer-footer">
+    <div></div>
+    <button class="btn dark" id="closeManage">Fechar</button>
+  </div>
+</aside>
+
+<script>
+  const BACKEND_PROD_URL = 'https://gaveta-monitor.onrender.com';
+  const BACKEND_LOCAL_URL = 'http://localhost:3000';
+  const STORAGE_KEY = 'gaveta-radar-v5-artists';
+  const DASHBOARD_CACHE_KEY = 'gaveta-radar-v5-dashboard-cache';
+  const CLOUD_SYNC_BOOTSTRAP_KEY = 'gaveta-radar-v5-cloud-bootstrap';
+  const FULL_REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+  const LAST_FULL_REFRESH_KEY = 'gaveta-radar-v5-last-full-refresh';
+
+  function initialBackendUrl() {
+    const forced = new URLSearchParams(window.location.search).get('api');
+    if (forced) return forced;
+    const host = window.location.hostname;
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    const isFileProtocol = window.location.protocol === 'file:';
+    return (isLocalHost || isFileProtocol) ? BACKEND_LOCAL_URL : BACKEND_PROD_URL;
+  }
+
+  let activeBackendUrl = initialBackendUrl();
+
+  function backendCandidates() {
+    if (activeBackendUrl === BACKEND_LOCAL_URL) return [BACKEND_LOCAL_URL, BACKEND_PROD_URL];
+    if (activeBackendUrl === BACKEND_PROD_URL) return [BACKEND_PROD_URL, BACKEND_LOCAL_URL];
+    return [activeBackendUrl, BACKEND_PROD_URL, BACKEND_LOCAL_URL];
+  }
+
+  async function fetchBackendJson(pathname, options = {}) {
+    let lastError = null;
+    for (const baseUrl of backendCandidates()) {
+      try {
+        const res = await fetch(`${baseUrl}${pathname}`, options);
+        const data = await res.json();
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Erro no servidor');
+        activeBackendUrl = baseUrl;
+        return data;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError || new Error('Não foi possível conectar ao backend.');
+  }
+
+  async function fetchDashboardPayload(artists) {
+    return fetchBackendJson('/api/dashboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artists }),
+    });
+  }
+
+  const qs = id => document.getElementById(id);
+  const esc = (v = '') => String(v)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+  const addDrawer = qs('addDrawer');
+  const manageDrawer = qs('manageDrawer');
+  const backdrop = qs('drawerBackdrop');
+  const menuBtn = qs('menuBtn');
+  const menuDrawer = qs('menuDrawer');
+  const menuBackdrop = qs('menuBackdrop');
+  const menuRefreshBtn = qs('menuRefreshBtn');
+  const menuExportBtn = qs('menuExportBtn');
+  const menuImportBtn = qs('menuImportBtn');
+  const menuManageBtn = qs('menuManageBtn');
+  const menuAddBtn = qs('menuAddBtn');
+  const menuCloseBtn = qs('menuCloseBtn');
+  const formError = qs('formError');
+  const refreshBtn = qs('refreshBtn');
+  let artistsCloudSyncQueue = Promise.resolve();
+
+  function getLastFullRefresh() {
+    return Number(localStorage.getItem(LAST_FULL_REFRESH_KEY) || 0);
+  }
+
+  function setLastFullRefresh(ts) {
+    localStorage.setItem(LAST_FULL_REFRESH_KEY, String(ts));
+  }
+
+  function getFullRefreshRemainingMs() {
+    const elapsed = Date.now() - getLastFullRefresh();
+    return Math.max(0, FULL_REFRESH_INTERVAL_MS - elapsed);
+  }
+
+  function formatMmSs(ms) {
+    const totalSec = Math.ceil(ms / 1000);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const ss = String(totalSec % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+
+  function formatRemainingLong(ms) {
+    const totalMinutes = Math.ceil(ms / 60000);
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const mins = totalMinutes % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${formatMmSs(ms)}`;
+  }
+
+  function updateRefreshButtonState() {
+    const remaining = getFullRefreshRemainingMs();
+    if (remaining > 0) {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = `Geral em ${formatRemainingLong(remaining)}`;
+    } else {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Atualizar geral (semanal)';
+    }
+  }
+
+  function confirmFullRefresh() {
+    const remaining = getFullRefreshRemainingMs();
+    if (remaining > 0) {
+      const nextDate = new Date(getLastFullRefresh() + FULL_REFRESH_INTERVAL_MS).toLocaleString('pt-BR');
+      alert(`Atualização geral bloqueada até ${nextDate}.`);
+      return false;
+    }
+
+    const confirmed = window.confirm('Atualização geral vai consumir créditos da API para TODOS os artistas. Deseja continuar?');
+    if (!confirmed) return false;
+
+    const typed = window.prompt('Digite ATUALIZAR GERAL para confirmar.');
+    return typed === 'ATUALIZAR GERAL';
+  }
+
+  function extractSpotifyId(v = '') {
+    const s = String(v).trim();
+    for (const p of [
+      /open\.spotify\.com\/(?:intl-[^/]+\/)?artist\/([A-Za-z0-9]{22})/i,
+      /spotify:artist:([A-Za-z0-9]{22})/i,
+      /^([A-Za-z0-9]{22})$/,
+    ]) { const m = s.match(p); if (m) return m[1]; }
+    return null;
+  }
+
+  function isYouTubeChannel(v = '') {
+    return /youtube\.com\/(channel\/|c\/|user\/|@)/i.test(String(v).trim());
+  }
+
+  function normalizeArtistEntry(item = {}) {
+    const artistName = String(item?.artistName || item?.name || '').trim();
+    const spotifyUrl = String(item?.spotifyUrl || '').trim();
+    const youtubeUrl = String(item?.youtubeUrl || '').trim();
+    const spotifyArtistId = extractSpotifyId(spotifyUrl) || String(item?.spotifyArtistId || '').trim() || undefined;
+    const cmArtistId = Number(item?.cmArtistId || item?.chartmetricArtistId || 0) || undefined;
+
+    if (!artistName || !spotifyArtistId) return null;
+
+    return {
+      artistName,
+      spotifyUrl,
+      youtubeUrl,
+      spotifyArtistId,
+      cmArtistId,
+    };
+  }
+
+  function sanitizeArtists(list) {
+    const bySpotifyId = new Map();
+    (Array.isArray(list) ? list : []).forEach(item => {
+      const normalized = normalizeArtistEntry(item);
+      if (!normalized) return;
+      bySpotifyId.set(normalized.spotifyArtistId, normalized);
+    });
+    return [...bySpotifyId.values()];
+  }
+
+  function getArtists() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return sanitizeArtists(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchCloudArtists() {
+    const data = await fetchBackendJson('/api/artists');
+    return sanitizeArtists(data.artists);
+  }
+
+  async function pushCloudArtists(artists) {
+    const data = await fetchBackendJson('/api/artists', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artists: sanitizeArtists(artists) }),
+    });
+    return sanitizeArtists(data.artists);
+  }
+
+  function queueCloudSync(artists) {
+    const cleaned = sanitizeArtists(artists);
+    artistsCloudSyncQueue = artistsCloudSyncQueue
+      .catch(() => null)
+      .then(async () => {
+        try {
+          await pushCloudArtists(cleaned);
+        } catch {
+          // Sem bloquear a UI quando o backend estiver temporariamente indisponível.
+        }
+      });
+    return artistsCloudSyncQueue;
+  }
+
+  async function bootstrapArtistsFromCloud() {
+    const localArtists = getArtists();
+    try {
+      const cloudArtists = await fetchCloudArtists();
+      if (cloudArtists.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudArtists));
+        localStorage.setItem(CLOUD_SYNC_BOOTSTRAP_KEY, '1');
+        return cloudArtists;
+      }
+
+      if (localArtists.length) {
+        await pushCloudArtists(localArtists);
+        localStorage.setItem(CLOUD_SYNC_BOOTSTRAP_KEY, '1');
+      }
+      return localArtists;
+    } catch {
+      // Se não conseguir sincronizar agora, segue com o cache local e tenta de novo depois.
+      return localArtists;
+    }
+  }
+
+  function artistsFingerprint(artists) {
+    const normalized = (artists || []).map(a => ({
+      artistName: String(a?.artistName || '').trim().toLowerCase(),
+      spotifyUrl: String(a?.spotifyUrl || '').trim(),
+      youtubeUrl: String(a?.youtubeUrl || '').trim(),
+      spotifyArtistId: String(a?.spotifyArtistId || '').trim(),
+      cmArtistId: Number(a?.cmArtistId || 0) || 0,
+    }));
+    return JSON.stringify(normalized);
+  }
+
+  function loadCachedDashboard() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY) || 'null');
+      return raw && typeof raw === 'object' ? raw : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveCachedDashboard(artists, payload) {
+    const record = {
+      savedAt: Date.now(),
+      artistsFingerprint: artistsFingerprint(artists),
+      payload,
+    };
+    localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(record));
+  }
+
+  function loadMatchingCachedDashboard(artists) {
+    const cached = loadCachedDashboard();
+    if (!cached?.payload || !cached?.savedAt || !cached?.artistsFingerprint) return null;
+    if (!Array.isArray(cached.payload.artists)) return null;
+
+    const map = new Map();
+    cached.payload.artists.forEach(item => {
+      const id = String(item?.spotifyArtistId || '').trim();
+      if (id) map.set(id, item);
+    });
+
+    const present = [];
+    const missing = [];
+    (artists || []).forEach(a => {
+      const id = extractSpotifyId(a.spotifyUrl) || String(a.spotifyArtistId || '').trim();
+      if (!id) {
+        missing.push(a);
+        return;
+      }
+      if (map.has(id)) present.push(map.get(id));
+      else missing.push(a);
+    });
+
+    return { cached, present, missing };
+  }
+
+  function computePriorityLocal(artist) {
+    let score = 0;
+    score += Number(artist?.spotify?.monthlyListeners?.value || 0) / 100000;
+    score += Number(artist?.youtube?.channelViews || 0) / 10000000;
+    score += Number(artist?.spotify?.followers?.value || 0) / 200000;
+    score += Number(artist?.spotify?.singles?.[0]?.plays || 0) / 1000000;
+    score += Number(artist?.youtube?.latestVideos?.[0]?.views || 0) / 1000000;
+    return score;
+  }
+
+  function buildDerivedData(artists) {
+    const validArtists = (artists || []).filter(a => a && !a.error);
+    const ranking = validArtists
+      .map(item => ({
+        artistName: item.artistName,
+        imageUrl: item.imageUrl,
+        monthlyListeners: item.spotify?.monthlyListeners?.value || 0,
+        youtubeViews: item.youtube?.channelViews || 0,
+        priorityScore: computePriorityLocal(item),
+      }))
+      .sort((a, b) => b.priorityScore - a.priorityScore)
+      .slice(0, 10);
+
+    const trafficAlerts = [];
+    validArtists.forEach(artist => {
+      (artist.youtube?.latestVideos || []).forEach(video => {
+        if (video?.needsTraffic) {
+          trafficAlerts.push({
+            artistName: artist.artistName,
+            artistImage: artist.imageUrl,
+            videoTitle: video.title,
+            videoUrl: video.youtubeUrl,
+            thumbnail: video.thumbnail,
+            views: video.views,
+            daysOld: video.daysOld,
+            publishedAt: video.publishedAt,
+          });
+        }
+      });
+    });
+
+    return { ranking, trafficAlerts };
+  }
+
+  function mergeLiveWithCachedArtists(livePayload, cachedPayload) {
+    if (!livePayload || !Array.isArray(livePayload.artists) || !cachedPayload || !Array.isArray(cachedPayload.artists)) {
+      return livePayload;
+    }
+
+    const bySpotifyId = new Map();
+    cachedPayload.artists.forEach(item => {
+      const id = String(item?.spotifyArtistId || '').trim();
+      if (id) bySpotifyId.set(id, item);
+    });
+
+    const artists = livePayload.artists.map(item => {
+      if (!item?.error) return item;
+      const id = String(item?.spotifyArtistId || '').trim();
+      const cachedItem = bySpotifyId.get(id);
+      return cachedItem || item;
+    });
+
+    return {
+      ...livePayload,
+      artists,
+    };
+  }
+
+  function renderDashboardPayload(data) {
+    qs('artistGrid').innerHTML = (data.artists || []).map(artistCard).join('');
+    renderRanking(data.ranking || []);
+    renderTrafficAlerts(data.trafficAlerts || []);
+  }
+
+  function saveArtists(data, options = {}) {
+    const cleaned = sanitizeArtists(data);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    renderSavedArtists();
+
+    if (options.sync !== false) {
+      queueCloudSync(cleaned);
+    }
+
+    return cleaned;
+  }
+
+  function exportArtists() {
+    const artists = getArtists();
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      artists,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = `gaveta-artists-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importArtists(file) {
+    const text = await file.text();
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new Error('Arquivo JSON inválido.');
+    }
+
+    const incoming = Array.isArray(parsed) ? parsed : parsed?.artists;
+    if (!Array.isArray(incoming)) throw new Error('Formato inválido: lista de artistas não encontrada.');
+
+    const normalized = incoming.map(item => ({
+      artistName: String(item?.artistName || item?.name || '').trim(),
+      spotifyUrl: String(item?.spotifyUrl || '').trim(),
+      youtubeUrl: String(item?.youtubeUrl || '').trim(),
+      spotifyArtistId: String(item?.spotifyArtistId || '').trim() || undefined,
+      cmArtistId: Number(item?.cmArtistId || item?.chartmetricArtistId || 0) || undefined,
+    })).filter(item => item.artistName && extractSpotifyId(item.spotifyUrl));
+
+    if (!normalized.length) throw new Error('Nenhum artista válido foi encontrado no arquivo.');
+
+    const dedupe = new Map();
+    normalized.forEach(item => dedupe.set(item.artistName.toLowerCase(), item));
+    const finalList = [...dedupe.values()];
+
+    saveArtists(finalList);
+    await loadDashboard();
+  }
+
+  function mergeArtistIdsFromResponse(responseArtists) {
+    if (!Array.isArray(responseArtists) || !responseArtists.length) return;
+
+    const current = getArtists();
+    if (!current.length) return;
+
+    let changed = false;
+    const bySpotifyId = new Map();
+    responseArtists.forEach(item => {
+      const spId = String(item?.spotifyArtistId || '').trim();
+      if (spId) bySpotifyId.set(spId, item);
+    });
+
+    const merged = current.map(entry => {
+      const localSpotifyId = extractSpotifyId(entry.spotifyUrl) || String(entry.spotifyArtistId || '').trim();
+      const hit = bySpotifyId.get(localSpotifyId);
+      if (!hit) return entry;
+
+      const nextSpotifyArtistId = String(hit.spotifyArtistId || localSpotifyId || '').trim() || undefined;
+      const nextCmArtistId = Number(hit.chartmetricArtistId || hit.cmArtistId || entry.cmArtistId || 0) || undefined;
+
+      if (entry.spotifyArtistId !== nextSpotifyArtistId || Number(entry.cmArtistId || 0) !== Number(nextCmArtistId || 0)) {
+        changed = true;
+        return {
+          ...entry,
+          spotifyArtistId: nextSpotifyArtistId,
+          cmArtistId: nextCmArtistId,
+        };
+      }
+
+      return entry;
+    });
+
+    if (changed) saveArtists(merged, { sync: false });
+  }
+
+  const fmtN = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+  function compact(v) {
+    const n = Number(v);
+    if (v === null || v === undefined || v === '' || Number.isNaN(n)) return '--';
+    return fmtN.format(n);
+  }
+  function delta(val) {
+    const n = Number(val);
+    if (val === null || val === undefined || val === '' || Number.isNaN(n)) return '';
+    if (n > 0) return `<span class="delta up">▲${n.toFixed(1)}%</span>`;
+    if (n < 0) return `<span class="delta dn">▼${Math.abs(n).toFixed(1)}%</span>`;
+    return '<span class="delta neu">→0%</span>';
+  }
+  function fmtDate(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR');
+  }
+
+  function openDrawer(w) {
+    backdrop.classList.remove('hidden');
+    addDrawer.classList.add('hidden');
+    manageDrawer.classList.add('hidden');
+    w.classList.remove('hidden');
+  }
+
+  function closeDrawers() {
+    backdrop.classList.add('hidden');
+    addDrawer.classList.add('hidden');
+    manageDrawer.classList.add('hidden');
+    formError.classList.add('hidden');
+    formError.textContent = '';
+  }
+
+  function renderSavedArtists() {
+    const list = qs('savedArtistsList');
+    const items = getArtists();
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">Nenhum artista cadastrado ainda.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map((item, i) => `
+      <div class="saved-item">
+        <div>
+          <h4>${esc(item.artistName)}</h4>
+          <p>${esc(item.spotifyUrl)}</p>
+          <p>${esc(item.youtubeUrl || '--')}</p>
+        </div>
+        <button class="btn dark sm" data-rm="${i}">Excluir</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-rm]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        saveArtists(getArtists().filter((_, i) => i !== Number(btn.dataset.rm)));
+        loadDashboard();
+      });
+    });
+  }
+
+  function renderTrafficAlerts(alerts) {
+    const section = qs('trafficSection');
+    const list = qs('trafficList');
+    const badge = qs('trafficCount');
+
+    if (!alerts || !alerts.length) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+    badge.textContent = String(alerts.length);
+    list.innerHTML = alerts.map(a => `
+      <a class="traffic-card" href="${esc(a.videoUrl || '#')}" target="_blank" rel="noopener">
+        <img class="traffic-thumb" src="${esc(a.thumbnail || '')}" alt="${esc(a.videoTitle || 'Video')}" loading="lazy">
+        <div class="traffic-info">
+          <div class="traffic-artist">${esc(a.artistName || 'Artista')}</div>
+          <div class="traffic-title">${esc(a.videoTitle || 'Video')}</div>
+          <div class="traffic-meta">${fmtDate(a.publishedAt)} · ${Number(a.daysOld) || 0}d atrás</div>
+        </div>
+        <div class="traffic-cta">
+          <span class="cta-label">Rodar tráfego</span>
+          <div class="cta-views">${compact(a.views)} views</div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  function singleRow(s) {
+    const hasPlays = s.plays !== null && s.plays !== undefined;
+    return `
+      <div class="media-row">
+        <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
+          <img class="media-thumb" src="${esc(s.coverUrl || '')}" alt="${esc(s.title || 'Single')}" loading="lazy">
+        </a>
+        <div class="media-info">
+          <div class="media-title"><a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(s.title || 'Single')}</a></div>
+          <div class="media-date">${fmtDate(s.releaseDate) || 'sem data'}</div>
+        </div>
+        <div class="media-stat">
+          ${hasPlays
+            ? `<div class="media-num">${compact(s.plays)}</div><div class="media-lbl">streams</div>`
+            : '<div class="no-data">--</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function videoRow(v) {
+    return `
+      <div class="media-row">
+        <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
+          <img class="media-thumb yt-thumb" src="${esc(v.thumbnail || '')}" alt="${esc(v.title || 'Video')}" loading="lazy">
+        </a>
+        <div class="media-info">
+          <div class="media-title"><a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener">${esc(v.title || 'Video')}</a></div>
+          <div class="media-date">${fmtDate(v.publishedAt) || 'sem data'}${v.daysOld < 999 ? ` · ${v.daysOld}d` : ''}</div>
+          ${v.needsTraffic ? '<span class="traffic-tag">RODAR TRÁFEGO</span>' : ''}
+        </div>
+        <div class="media-stat">
+          <div class="media-num">${compact(v.views)}</div>
+          <div class="media-lbl">views</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function artistCard(a) {
+    if (a.error) {
+      return `
+        <article class="card artist-card">
+          <div class="error-card"><strong>${esc(a.artistName || 'Artista')}</strong><br>${esc(a.error)}</div>
+        </article>
+      `;
+    }
+
+    const sp = a.spotify || {};
+    const yt = a.youtube || {};
+    const ml = sp.monthlyListeners || {};
+    const fl = sp.followers || {};
+    const singles = Array.isArray(sp.singles) ? sp.singles : [];
+    const vids = Array.isArray(yt.latestVideos) ? yt.latestVideos : [];
+
+    return `
+      <article class="card artist-card">
+        <div class="artist-top">
+          <img class="artist-avatar" src="${esc(a.imageUrl || yt.channelThumbnail || '')}" alt="${esc(a.artistName || 'Artista')}" loading="lazy">
+          <div class="artist-info">
+            <div class="artist-name">
+              <a href="${esc(a.spotifyArtistUrl || '#')}" target="_blank" rel="noopener">${esc(a.artistName || 'Artista')}</a>
+            </div>
+            <div class="artist-ts">Atualizado ${new Date(a.fetchedAt).toLocaleString('pt-BR')}</div>
+          </div>
+        </div>
+        <div class="pill-row">
+          <div class="tag sp"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M6 9.5c3.8-1.1 8.2-.8 11.8 1" stroke="#0B0B10" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M6.8 12.4c3.1-.8 6.7-.6 9.6.8" stroke="#0B0B10" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M7.6 15c2.2-.5 4.7-.4 6.8.5" stroke="#0B0B10" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>Spotify</div>
+          <div class="tag yt"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4" fill="#ff0033"/><path d="M10 9.5 15.5 12 10 14.5z" fill="#fff"/></svg>YouTube</div>
+        </div>
+
+        <div class="platforms">
+          <div class="platform sp-block">
+            <div class="plat-head"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M6 9.5c3.8-1.1 8.2-.8 11.8 1" stroke="#0B0B10" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M6.8 12.4c3.1-.8 6.7-.6 9.6.8" stroke="#0B0B10" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M7.6 15c2.2-.5 4.7-.4 6.8.5" stroke="#0B0B10" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg> Spotify</div>
+            <div class="plat-metrics">
+              <div class="mc">
+                <div class="mc-k">Ouvintes mensais</div>
+                <div class="mc-v">${compact(ml.value)}</div>
+                <div class="mc-s">${delta(ml.weeklyDiffPercent) ? `7d ${delta(ml.weeklyDiffPercent)}` : ''}${delta(ml.monthlyDiffPercent) ? ` · 30d ${delta(ml.monthlyDiffPercent)}` : ''}&nbsp;</div>
+              </div>
+              <div class="mc">
+                <div class="mc-k">Seguidores</div>
+                <div class="mc-v">${compact(fl.value)}</div>
+                <div class="mc-s">${delta(fl.weeklyDiffPercent) ? `7d ${delta(fl.weeklyDiffPercent)}` : ''}${delta(fl.monthlyDiffPercent) ? ` · 30d ${delta(fl.monthlyDiffPercent)}` : ''}&nbsp;</div>
+              </div>
+            </div>
+            <div class="media-list">
+              ${singles.length ? singles.map(singleRow).join('') : '<div class="empty">Sem singles recentes.</div>'}
+            </div>
+          </div>
+
+          <div class="platform yt-block">
+            <div class="plat-head"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4" fill="#ff0033"/><path d="M10 9.5 15.5 12 10 14.5z" fill="#fff"/></svg> YouTube</div>
+            <div class="plat-metrics">
+              <div class="mc">
+                <div class="mc-k">Inscritos</div>
+                <div class="mc-v">${compact(yt.subscribers)}</div>
+                <div class="mc-s">${esc(yt.channelTitle || '--')}</div>
+              </div>
+              <div class="mc">
+                <div class="mc-k">Views canal</div>
+                <div class="mc-v">${compact(yt.channelViews)}</div>
+                <div class="mc-s">Total acumulado</div>
+              </div>
+            </div>
+            <div class="media-list">
+              ${vids.length ? vids.map(videoRow).join('') : '<div class="empty">Sem vídeos recentes.</div>'}
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderRanking(ranking) {
+    const box = qs('ranking');
+    if (!ranking.length) {
+      box.innerHTML = '<div class="empty">Cadastre artistas para montar o ranking.</div>';
+      return;
+    }
+
+    box.innerHTML = ranking.map((item, i) => `
+      <div class="rank-item">
+        <div class="rank-pos">${i + 1}</div>
+        <img src="${esc(item.imageUrl || '')}" alt="${esc(item.artistName || 'Artista')}" loading="lazy">
+        <div class="rank-meta">
+          <h4>${esc(item.artistName || 'Artista')}</h4>
+          <p>SP ${compact(item.monthlyListeners)} · YT ${compact(item.youtubeViews)}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function loadDashboard(options = {}) {
+    const forceRefresh = Boolean(options.forceRefresh);
+    const artistsToRefresh = Array.isArray(options.artistsToRefresh) ? options.artistsToRefresh : null;
+    let artists = getArtists();
+    qs('lastSync').textContent = artists.length ? (forceRefresh ? 'Atualizando...' : 'Carregando...') : 'Nenhum artista';
+    renderSavedArtists();
+
+    try {
+      artists = await bootstrapArtistsFromCloud();
+    } catch {
+      // Mantém a lista local se a nuvem estiver indisponível.
+    }
+
+    artists = getArtists();
+
+    if (!artists.length) {
+      qs('artistGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">Cadastre artistas para iniciar o monitoramento.</div>';
+      renderRanking([]);
+      qs('trafficSection').classList.add('hidden');
+      return;
+    }
+
+    if (forceRefresh) {
+      const remaining = getFullRefreshRemainingMs();
+      if (remaining > 0) {
+        qs('lastSync').textContent = `Atualização geral disponível em ${formatRemainingLong(remaining)}`;
+        updateRefreshButtonState();
+        return;
+      }
+    }
+
+    try {
+      let dashboardArtists = artists;
+      if (artistsToRefresh?.length) {
+        const partial = await fetchDashboardPayload(artistsToRefresh);
+        const current = getArtists();
+        const bySpotifyId = new Map((partial.artists || []).map(item => [String(item?.spotifyArtistId || '').trim(), item]));
+        dashboardArtists = current.map(item => {
+          const id = extractSpotifyId(item.spotifyUrl) || String(item.spotifyArtistId || '').trim();
+          return bySpotifyId.get(id) || item;
+        });
+      }
+
+      const liveData = await fetchDashboardPayload(dashboardArtists);
+      const data = liveData;
+
+      mergeArtistIdsFromResponse(data.artists || []);
+      renderDashboardPayload(data);
+      saveCachedDashboard(artists, data);
+      if (forceRefresh) setLastFullRefresh(Date.now());
+      updateRefreshButtonState();
+      const backendLabel = activeBackendUrl === BACKEND_LOCAL_URL ? 'local' : 'produção';
+      qs('lastSync').textContent = `Sincronizado ${new Date(data.fetchedAt).toLocaleString('pt-BR')} (${backendLabel})`;
+    } catch (err) {
+      if (cacheState?.cached?.payload) {
+        renderDashboardPayload(cacheState.cached.payload);
+        const cacheDate = new Date(cacheState.cached.savedAt).toLocaleString('pt-BR');
+        qs('lastSync').textContent = `Sem crédito da API. Exibindo último snapshot ${cacheDate}`;
+        return;
+      }
+
+      qs('artistGrid').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(err.message)}</div>`;
+      qs('lastSync').textContent = 'Falha na sincronização';
+    }
+  }
+
+  function saveArtist() {
+    const name = qs('artistName').value.trim();
+    const spUrl = qs('spotifyUrl').value.trim();
+    const ytUrl = qs('youtubeUrl').value.trim();
+
+    const err = msg => {
+      formError.textContent = msg;
+      formError.classList.remove('hidden');
+    };
+
+    if (!name) return err('Digite o nome do artista.');
+    if (!extractSpotifyId(spUrl)) return err('Cole um link válido do artista no Spotify.');
+    if (ytUrl && !isYouTubeChannel(ytUrl)) return err('Cole um link válido de canal no YouTube.');
+
+    const items = getArtists();
+    if (items.some(i => i.artistName.toLowerCase() === name.toLowerCase())) return err('Artista já cadastrado.');
+
+    const newArtist = { artistName: name, spotifyUrl: spUrl, youtubeUrl: ytUrl };
+    items.push(newArtist);
+    saveArtists(items);
+
+    qs('artistName').value = '';
+    qs('spotifyUrl').value = '';
+    qs('youtubeUrl').value = '';
+    closeDrawers();
+    loadDashboard({ artistsToRefresh: [newArtist] });
+  }
+
+  qs('addBtn').addEventListener('click', () => openDrawer(addDrawer));
+  qs('refreshBtn').addEventListener('click', () => {
+    if (!confirmFullRefresh()) return;
+    loadDashboard({ forceRefresh: true });
+  });
+  qs('manageBtn').addEventListener('click', () => openDrawer(manageDrawer));
+  qs('closeAdd').addEventListener('click', closeDrawers);
+  qs('closeManage').addEventListener('click', closeDrawers);
+  backdrop.addEventListener('click', closeDrawers);
+  qs('saveArtist').addEventListener('click', saveArtist);
+
+  qs('exportBtn').addEventListener('click', exportArtists);
+  qs('importBtn').addEventListener('click', () => qs('importInput').click());
+  qs('importInput').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    try {
+      await importArtists(file);
+      alert('Lista importada com sucesso.');
+    } catch (error) {
+      alert(error.message || 'Falha ao importar lista.');
+    }
+  });
+
+  ['artistName', 'spotifyUrl', 'youtubeUrl'].forEach(id =>
+    qs(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveArtist();
+    })
+  );
+
+  function openMenuDrawer() {
+    menuBackdrop.classList.remove('hidden');
+    menuDrawer.classList.remove('hidden');
+  }
+
+  function closeMenuDrawer() {
+    menuBackdrop.classList.add('hidden');
+    menuDrawer.classList.add('hidden');
+  }
+
+  menuBtn.addEventListener('click', openMenuDrawer);
+  menuBackdrop.addEventListener('click', closeMenuDrawer);
+  menuCloseBtn.addEventListener('click', closeMenuDrawer);
+  menuAddBtn.addEventListener('click', () => { closeMenuDrawer(); openDrawer(addDrawer); });
+  menuManageBtn.addEventListener('click', () => { closeMenuDrawer(); openDrawer(manageDrawer); });
+  menuRefreshBtn.addEventListener('click', () => { closeMenuDrawer(); if (confirmFullRefresh()) loadDashboard({ forceRefresh: true }); });
+  menuExportBtn.addEventListener('click', () => { closeMenuDrawer(); exportArtists(); });
+  menuImportBtn.addEventListener('click', () => { closeMenuDrawer(); qs('importInput').click(); });
+
+  setInterval(updateRefreshButtonState, 30000);
+  updateRefreshButtonState();
+
+  (async () => {
+    const bootstrapped = localStorage.getItem(CLOUD_SYNC_BOOTSTRAP_KEY) === '1';
+    if (!bootstrapped || getArtists().length === 0) {
+      await bootstrapArtistsFromCloud();
+    } else {
+      queueCloudSync(getArtists());
+    }
+
+    renderSavedArtists();
+    loadDashboard();
+  })();
+</script>
+</body>
+</html>
