@@ -47,9 +47,8 @@
     .menu-drawer-head p{margin:0;color:var(--muted);font-size:12px}
     .menu-drawer-body{padding:14px 16px;display:grid;gap:10px;overflow:auto}
     .menu-drawer .btn{width:100%;justify-content:center}
-    .menu-drawer-footer{padding:14px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;margin-top:auto}
-    .menu-drawer-footer .btn{flex:0 0 auto}
-    .menu-credit{margin-left:auto;color:var(--soft);font-size:11px;line-height:1.2;text-align:right;white-space:nowrap}
+    .menu-drawer-footer{padding:14px 16px;border-top:1px solid var(--line);display:flex;gap:10px}
+    .menu-drawer-footer .btn{flex:1}
 
     .wrap{padding-top:20px;padding-bottom:40px}
     .layout{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:18px;align-items:start}
@@ -74,7 +73,7 @@
     .section-head h2{margin:0 0 3px;font:800 21px/1 Syne,sans-serif}
     .section-head p{margin:0;color:var(--muted);font-size:12px}
 
-    .artist-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .artist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.014));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
     .artist-card{overflow:hidden}
 
@@ -110,21 +109,17 @@
     .up{color:#6ddf9e} .dn{color:#ff8fa3} .neu{color:var(--soft)}
 
     .media-list{display:grid;gap:0}
-    .media-row{display:grid;grid-template-columns:50px minmax(0,1fr) auto;gap:9px;align-items:center;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
+    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:center;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
     .media-row:hover{background:rgba(255,255,255,.03)}
     .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
     .media-thumb.yt-thumb{height:30px;border-radius:6px}
     .media-info{min-width:0}
-    .media-title{font-size:11px;font-weight:700;line-height:1.25;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .media-title{font-size:12px;font-weight:700;line-height:1.3;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .media-title a:hover{text-decoration:underline;opacity:.8}
     .media-date{font-size:10px;color:var(--muted)}
     .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
-    .media-title-line{display:flex;align-items:center;gap:8px;min-width:0}
-    .single-pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:rgba(29,185,84,.12);border:1px solid rgba(29,185,84,.28);color:#7ddf9d;font-size:9px;font-weight:800;white-space:nowrap;flex-shrink:0}
-    .single-pill.sp{background:rgba(29,185,84,.12);border-color:rgba(29,185,84,.28);color:#7ddf9d}
-    .single-pill.plays{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#fff}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
     .traffic-tag{display:inline-block;background:rgba(255,107,0,.18);border:1px solid rgba(255,107,0,.4);color:#ff9a50;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-top:3px;letter-spacing:.06em}
 
@@ -171,8 +166,8 @@
     .auth-input:focus{border-color:var(--line2)}
     .auth-error{margin-top:10px;color:#ff9cab;font-size:12px;min-height:16px}
 
-    @media(max-width:1440px){.artist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:980px){.layout{grid-template-columns:1fr}.ranking{position:static}.artist-grid{grid-template-columns:1fr}}
+    @media(max-width:1200px){.artist-grid{grid-template-columns:1fr}}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.ranking{position:static}.artist-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:720px){
       .header-inner,.wrap{padding-left:14px;padding-right:14px}
       .artist-grid{grid-template-columns:1fr}
@@ -224,6 +219,7 @@
         <div id="trafficList"></div>
       </div>
       <div class="artist-grid" id="artistGrid"></div>
+      <div class="footer-note">Desenvolvido por Dado Cruz.</div>
     </section>
 
     <aside class="ranking">
@@ -253,7 +249,6 @@
   </div>
   <div class="menu-drawer-footer">
     <button class="btn dark" id="menuCloseBtn">Fechar</button>
-    <div class="menu-credit">By Dado Cruz</div>
   </div>
 </aside>
 
@@ -835,17 +830,13 @@
 
   function singleRow(s) {
     const hasPlays = s.plays !== null && s.plays !== undefined;
-    const playsLabel = hasPlays ? compact(s.plays) : '--';
     return `
       <div class="media-row">
         <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
           <img class="media-thumb" src="${esc(s.coverUrl || '')}" alt="${esc(s.title || 'Single')}" loading="lazy">
         </a>
         <div class="media-info">
-          <div class="media-title-line">
-            <div class="media-title"><a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(s.title || 'Single')}</a></div>
-            <span class="single-pill plays">${esc(playsLabel)} plays</span>
-          </div>
+          <div class="media-title"><a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(s.title || 'Single')}</a></div>
           <div class="media-date">${fmtDate(s.releaseDate) || 'sem data'}</div>
         </div>
         <div class="media-stat">
