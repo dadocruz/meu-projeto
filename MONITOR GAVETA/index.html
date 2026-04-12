@@ -288,10 +288,23 @@
   </div>
 </aside>
 
-<aside class="drawer hidden" id="artDrawer">
+<aside class="drawer hidden" id="requestDrawer">
   <div class="drawer-head">
     <h3>Solicitações de Arte</h3>
-    <p>Painel de entrega: subir Feed e Reels no Drive e compartilhar com o cliente.</p>
+    <p>Painel de solicitação: enviar para agenda e acompanhar confirmação.</p>
+  </div>
+  <div class="drawer-body">
+    <div id="requestTasksList" class="media-list"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn dark" id="closeRequest">Fechar</button>
+  </div>
+</aside>
+
+<aside class="drawer hidden" id="artDrawer">
+  <div class="drawer-head">
+    <h3>Entregas de Arte</h3>
+    <p>Painel de entrega: subir artes no Drive e compartilhar com o cliente.</p>
   </div>
   <div class="drawer-body">
     <div id="artTasksList" class="media-list"></div>
@@ -616,10 +629,13 @@
   const menuAddBtn = qs('menuAddBtn');
   const menuCloseBtn = qs('menuCloseBtn');
   const artBtn = qs('artBtn');
+  const requestDrawer = qs('requestDrawer');
   const artDrawer = qs('artDrawer');
   const trafficDrawer = qs('trafficDrawer');
+  const closeRequestBtn = qs('closeRequest');
   const closeArtBtn = qs('closeArt');
   const closeTrafficBtn = qs('closeTraffic');
+  const requestTasksList = qs('requestTasksList');
   const artPendingCount = qs('artPendingCount');
   const artForecastList = qs('artForecastList');
   const artTasksList = qs('artTasksList');
@@ -1515,6 +1531,7 @@
     renderArtIndicators();
     refreshQuickRequestButtonsInGrid();
     renderArtForecast();
+    renderRequestTasks();
     renderArtTasks();
     renderGavetaRequests();
     renderUploadReport();
@@ -1809,16 +1826,77 @@
       btn.addEventListener('click', () => {
         artArtistFilter = '';
         artActiveTab = 'pending';
-        openDrawer(artDrawer);
-        renderArtTasks();
+        artTaskFocusId = btn.getAttribute('data-open-art') || '';
+        openDrawer(requestDrawer);
+        renderRequestTasks();
           renderGavetaRequests();
+      });
+    });
+  }
+
+  function renderRequestTasks() {
+    if (!requestTasksList) return;
+
+    if (!artTaskFocusId) {
+      requestTasksList.innerHTML = '<div class="empty">Clique em Pedir arte no single ou vídeo para abrir a solicitação deste item.</div>';
+      return;
+    }
+
+    const task = artTasks.find(t => t.id === artTaskFocusId);
+    if (!task) {
+      requestTasksList.innerHTML = '<div class="empty">Item selecionado não encontrado.</div>';
+      return;
+    }
+
+    const requested = isTaskRequested(task);
+    requestTasksList.innerHTML = `
+      <section class="task-group">
+        <div class="task-group-title requested">Solicitação selecionada</div>
+        <div class="art-task">
+          <div class="art-task-head">
+            <div class="art-task-main">
+              <img class="task-cover" src="${esc(task.coverUrl || '')}" alt="${esc(task.itemTitle || 'Capa')}" loading="lazy">
+              <div>
+                <div class="art-task-title">${esc(task.artistName)} · ${esc(task.itemTitle)}</div>
+                <div class="art-task-meta">${esc(task.metricLabel)} · meta ${compact(task.milestone)} · atual ${compact(task.currentValue)}</div>
+                ${task.sourceUrl ? `<div class="art-task-meta"><a href="${esc(task.sourceUrl)}" target="_blank" rel="noopener">Abrir origem</a></div>` : ''}
+              </div>
+            </div>
+            <span class="status-pill status-${esc(task.status)}">${statusLabel(task.status)}</span>
+          </div>
+          <div class="art-row">
+            <button class="btn sm ${requested ? 'requested' : 'dark'}" data-send-request="${esc(task.id)}" ${(requested ? 'disabled' : '')}>${requested ? 'Pedido enviado' : 'Solicitar arte'}</button>
+          </div>
+          <div class="art-task-meta">${requested ? 'Solicitação confirmada na agenda.' : 'Clique para enviar a solicitação para agenda.'}</div>
+        </div>
+      </section>
+    `;
+
+    requestTasksList.querySelectorAll('[data-send-request]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-send-request');
+        const selectedTask = artTasks.find(t => t.id === id);
+        if (!selectedTask || isTaskRequested(selectedTask)) return;
+
+        try {
+          btn.disabled = true;
+          btn.textContent = 'Enviando...';
+          await requestTaskFromTask(selectedTask);
+          saveArtTasks();
+          showToast('Pedido enviado e confirmado na agenda.', 'success');
+          renderRequestTasks();
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Solicitar arte';
+          showErrorToast(err, 'Falha ao enviar solicitação para agenda.');
+        }
       });
     });
   }
 
   function renderArtTasks() {
     if (!artTaskFocusId) {
-      artTasksList.innerHTML = '<div class="empty">Clique em Pedir arte no single ou video para abrir o pedido deste item.</div>';
+      artTasksList.innerHTML = '<div class="empty">Clique em Subir artes para abrir a entrega deste item.</div>';
       return;
     }
 
@@ -1947,6 +2025,7 @@
     backdrop.classList.remove('hidden');
     addDrawer.classList.add('hidden');
     manageDrawer.classList.add('hidden');
+    requestDrawer.classList.add('hidden');
     artDrawer.classList.add('hidden');
     trafficDrawer.classList.add('hidden');
     w.classList.remove('hidden');
@@ -1956,6 +2035,7 @@
     backdrop.classList.add('hidden');
     addDrawer.classList.add('hidden');
     manageDrawer.classList.add('hidden');
+    requestDrawer.classList.add('hidden');
     artDrawer.classList.add('hidden');
     trafficDrawer.classList.add('hidden');
     formError.classList.add('hidden');
@@ -2382,8 +2462,8 @@
   artBtn.addEventListener('click', () => {
     artArtistFilter = '';
     artTaskFocusId = '';
-    openDrawer(artDrawer);
-    renderArtTasks();
+    openDrawer(requestDrawer);
+    renderRequestTasks();
   });
   qs('refreshBtn').addEventListener('click', () => {
     if (!confirmFullRefresh()) return;
@@ -2392,6 +2472,7 @@
   qs('manageBtn').addEventListener('click', () => openDrawer(manageDrawer));
   qs('closeAdd').addEventListener('click', closeDrawers);
   qs('closeManage').addEventListener('click', closeDrawers);
+  closeRequestBtn?.addEventListener('click', closeDrawers);
   closeArtBtn.addEventListener('click', closeDrawers);
   closeTrafficBtn?.addEventListener('click', closeDrawers);
   backdrop.addEventListener('click', closeDrawers);
@@ -2499,8 +2580,8 @@
     closeMenuDrawer();
     artArtistFilter = '';
     artTaskFocusId = '';
-    openDrawer(artDrawer);
-    renderArtTasks();
+    openDrawer(requestDrawer);
+    renderRequestTasks();
   });
   menuRefreshBtn.addEventListener('click', () => { closeMenuDrawer(); if (confirmFullRefresh()) loadDashboard({ forceRefresh: true }); });
   menuExportBtn.addEventListener('click', () => { closeMenuDrawer(); exportArtists(); });
@@ -2607,8 +2688,8 @@
       artArtistFilter = '';
       artActiveTab = task.status || 'pending';
       artTaskFocusId = task.id;
-      openDrawer(artDrawer);
-      renderArtTasks();
+      openDrawer(requestDrawer);
+      renderRequestTasks();
       return;
     }
 
@@ -2621,8 +2702,8 @@
       artArtistFilter = '';
       artActiveTab = 'progress';
       artTaskFocusId = task.id;
-      openDrawer(artDrawer);
-      renderArtTasks();
+      openDrawer(requestDrawer);
+      renderRequestTasks();
     } catch (err) {
       alert(err.message || 'Falha ao enviar solicitação para agenda.');
     } finally {
@@ -2653,6 +2734,7 @@
     });
     renderArtIndicators();
     renderArtForecast();
+    renderRequestTasks();
     renderArtTasks();
     renderGavetaRequests();
     await refreshRemoteRequests();
