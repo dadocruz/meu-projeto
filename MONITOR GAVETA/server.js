@@ -72,8 +72,19 @@ function normalizeSourceUrl(value = '') {
   try {
     const u = new URL(raw);
     const host = String(u.hostname || '').replace(/^www\./i, '').toLowerCase();
-    const pathname = String(u.pathname || '').replace(/\/+$/, '').toLowerCase();
-    return `${host}${pathname}`;
+    const pathname = String(u.pathname || '').replace(/\/+$/, '');
+
+    if (host === 'youtu.be') {
+      const videoId = pathname.replace(/^\/+/, '');
+      return videoId ? `youtube.com/watch?v=${videoId}` : 'youtube.com/watch';
+    }
+
+    if (host.includes('youtube.com') && pathname === '/watch') {
+      const videoId = String(u.searchParams.get('v') || '').trim();
+      return videoId ? `youtube.com/watch?v=${videoId}` : 'youtube.com/watch';
+    }
+
+    return `${host}${pathname.toLowerCase()}`;
   } catch {
     return raw.toLowerCase();
   }
@@ -221,6 +232,67 @@ async function postToGavetaAppsScript(payload) {
   }
 
   return data;
+}
+
+async function notifyCanceledRequests(items = []) {
+  const targets = (Array.isArray(items) ? items : []).filter(item => item && (item.upstreamTaskId || item.calendarEventId));
+  if (!targets.length) return [];
+
+  const warnings = [];
+  for (const item of targets) {
+    const taskId = String(item.upstreamTaskId || '').trim();
+    const calendarEventId = String(item.calendarEventId || '').trim();
+    const artist = String(item.artistName || '').trim();
+    const title = String(item.itemTitle || '').trim();
+
+    if (!taskId && !calendarEventId) continue;
+
+    let synced = false;
+
+    try {
+      await postToGavetaAppsScript({
+        action: 'cancelTask',
+        taskId,
+        calendarEventId,
+        calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
+        artist,
+        title,
+        note: 'Solicitacao cancelada no monitor.',
+      });
+      synced = true;
+    } catch {
+      // fallback abaixo
+    }
+
+    if (!synced && taskId) {
+      try {
+        await postToGavetaAppsScript({
+          action: 'updateTaskStatus',
+          taskId,
+          status: 'canceled',
+          calendarEventId,
+          calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
+          artist,
+          title,
+          note: 'Solicitacao cancelada no monitor.',
+        });
+        synced = true;
+      } catch {
+        // warning abaixo
+      }
+    }
+
+    if (!synced) {
+      warnings.push({
+        taskId,
+        calendarEventId,
+        artist,
+        title,
+      });
+    }
+  }
+
+  return warnings;
 }
 
 function supabaseHeaders(extra = {}) {
@@ -1118,8 +1190,10 @@ app.delete('/api/gaveta/requests', async (req, res) => {
     if (!signature) {
       const hasFallbackFilter = Boolean(type || artistName || itemTitle || sourceUrl || milestone > 0);
       if (!hasFallbackFilter) {
+        const store = await readGavetaRequestsStore();
+        const warnings = await notifyCanceledRequests(store.items || []);
         await writeGavetaRequestsStoreQueued([]);
-        return res.json({ ok: true, cleared: true, deletedCount: 'all', requests: [] });
+        return res.json({ ok: true, cleared: true, deletedCount: 'all', requests: [], cancellationSyncWarnings: warnings });
       }
 
       const store = await readGavetaRequestsStore();
@@ -1141,6 +1215,8 @@ app.delete('/api/gaveta/requests', async (req, res) => {
         return !shouldDelete;
       });
 
+      const deletedItems = (store.items || []).filter(item => !nextItems.includes(item));
+      const warnings = await notifyCanceledRequests(deletedItems);
       await writeGavetaRequestsStoreQueued(nextItems);
       return res.json({
         ok: true,
@@ -1148,6 +1224,7 @@ app.delete('/api/gaveta/requests', async (req, res) => {
         deletedCount: Math.max(0, beforeCount - nextItems.length),
         match: { type, artistName, itemTitle, sourceUrl, milestone },
         requests: nextItems,
+        cancellationSyncWarnings: warnings,
       });
     }
 
@@ -1173,8 +1250,10 @@ app.delete('/api/gaveta/requests', async (req, res) => {
       return !shouldDeleteByFallback;
     });
 
+    const deletedItems = (store.items || []).filter(item => !nextItems.includes(item));
+    const warnings = await notifyCanceledRequests(deletedItems);
     await writeGavetaRequestsStoreQueued(nextItems);
-    return res.json({ ok: true, cleared: true, signature, deletedCount: Math.max(0, beforeCount - nextItems.length), requests: nextItems });
+    return res.json({ ok: true, cleared: true, signature, deletedCount: Math.max(0, beforeCount - nextItems.length), requests: nextItems, cancellationSyncWarnings: warnings });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
   }
@@ -1201,6 +1280,7 @@ app.post('/api/gaveta/requests', async (req, res) => {
       const existing = store.items.find(item => item.signature === signature && item.status !== 'done');
       if (existing) return existing;
 
+      const requestedAtIso = new Date().toISOString();
       const dueDate = String(req.body?.dueDate || '').trim() || new Date().toISOString().slice(0, 10);
       const priority = task.demandStatus === 'do' ? 'alta' : 'media';
       let created = null;
@@ -1212,6 +1292,7 @@ app.post('/api/gaveta/requests', async (req, res) => {
           description: buildAgendaBriefing(task),
           priority,
           dueDate,
+          requestedAt: requestedAtIso,
           createCalendar: true,
           calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
           driveLink: String(task.driveUrl || '').trim(),
@@ -1241,7 +1322,7 @@ app.post('/api/gaveta/requests', async (req, res) => {
         coverUrl: String(task.coverUrl || ''),
         note: String(task.note || ''),
         status: 'requested',
-        requestedAt: new Date().toISOString(),
+        requestedAt: requestedAtIso,
         dueDate,
         calendarEventId,
         calendarError: '',
