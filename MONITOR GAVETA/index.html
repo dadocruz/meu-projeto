@@ -111,19 +111,19 @@
     .up{color:#6ddf9e} .dn{color:#ff8fa3} .neu{color:var(--soft)}
 
     .media-list{display:grid;gap:0}
-    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:start;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
+    .media-row{display:grid;grid-template-columns:56px 1fr auto;gap:9px;align-items:start;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
     .media-row:hover{background:rgba(255,255,255,.03)}
-    .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
-    .media-thumb.single-thumb{width:58px;height:58px;border-radius:9px}
-    .media-thumb.yt-thumb{height:30px;border-radius:6px}
+    .media-thumb{width:56px;height:56px;border-radius:9px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .media-thumb.single-thumb{width:64px;height:64px;border-radius:10px}
+    .media-thumb.yt-thumb{height:34px;border-radius:7px}
     .media-info{min-width:0}
     .media-title{font-size:12px;font-weight:700;line-height:1.3;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
     .media-title a:hover{text-decoration:underline;opacity:.8}
     .media-date{font-size:10px;color:var(--muted)}
     .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
-    .media-actions{grid-column:2 / -1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+    .media-actions{grid-column:1 / -1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:6px}
     .media-actions .btn.sm{padding:4px 9px;font-size:11px;border-radius:8px;white-space:nowrap}
-    .media-row.single-row{grid-template-columns:58px 1fr auto}
+    .media-row.single-row{grid-template-columns:64px 1fr auto}
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
@@ -150,6 +150,7 @@
     .upload-progress-fill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,#1db954,#8cc8ff);transition:width .12s linear}
     .btn.requested{background:rgba(65,211,125,.2);border:1px solid rgba(65,211,125,.45);color:#c5f8d9}
     .btn.upload-shortcut{background:rgba(35,151,239,.2);border:1px solid rgba(35,151,239,.45);color:#d4ecff}
+    .btn.reset-shortcut{background:rgba(255,80,80,.14);border:1px solid rgba(255,80,80,.36);color:#ffd0d0}
     .task-group{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}
     .task-group-title{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);border-bottom:1px solid var(--line)}
     .task-group-title.requested{color:#86efac}
@@ -883,6 +884,56 @@
       btn.classList.toggle('requested', requested);
       btn.classList.toggle('orange', !requested);
     });
+  }
+
+  function clearRemoteMatchesByTask(task) {
+    const selectedSig = String(task.signature || taskSignature(task));
+    const selectedLoose = taskLooseSignatureFromParts(task.type, task.artistName, task.itemTitle);
+    const selectedSource = normalizeSourceUrl(task.sourceUrl);
+    remoteRequests = remoteRequests.filter(req => {
+      const reqSig = String(req.signature || '');
+      const reqLoose = taskLooseSignatureFromParts(req.type, req.artistName, req.itemTitle);
+      const reqSource = normalizeSourceUrl(req.sourceUrl);
+      if (reqSig && reqSig === selectedSig) return false;
+      if (selectedLoose && reqLoose === selectedLoose) return false;
+      if (selectedSource && reqSource && reqSource === selectedSource) return false;
+      return true;
+    });
+  }
+
+  function findMatchingTasksForReset({ type, artistName, itemTitle, milestone, sourceUrl }) {
+    const signature = taskSignatureFromParts(type, artistName, itemTitle, milestone);
+    const loose = taskLooseSignatureFromParts(type, artistName, itemTitle);
+    const source = normalizeSourceUrl(sourceUrl);
+    return artTasks.filter(task => {
+      const exact = String(task.signature || '') === signature;
+      const looseTask = taskLooseSignatureFromParts(task.type, task.artistName, task.itemTitle) === loose;
+      const sourceTask = source && normalizeSourceUrl(task.sourceUrl) === source;
+      return exact || looseTask || sourceTask;
+    });
+  }
+
+  async function resetMediaRequestByParams(params, successLabel) {
+    const matches = findMatchingTasksForReset(params);
+    const requestedMatches = matches.filter(task => isTaskRequested(task));
+    if (!requestedMatches.length) {
+      showToast('Nenhuma solicitação ativa para zerar neste item.', 'warn');
+      return;
+    }
+
+    for (const task of requestedMatches) {
+      await clearGavetaRequestByTask(task);
+      clearRemoteMatchesByTask(task);
+      task.requested = false;
+      task.calendarEventId = '';
+      task.upstreamTaskId = '';
+      if (task.status !== 'done') task.status = 'pending';
+    }
+
+    saveArtTasks();
+    showToast(successLabel, 'success');
+    await refreshRemoteRequests();
+    await loadDashboard();
   }
 
   function getLastFullRefresh() {
@@ -1973,6 +2024,7 @@
         </div>
         <div class="media-actions">
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
+          ${requested ? `<button class="btn sm reset-shortcut" data-reset-request="1" data-type="single" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-milestone="${milestone}" data-source="${esc(s.spotifyUrl || '')}">Zerar pedido</button>` : ''}
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}">Subir artes</button>
         </div>
       </div>
@@ -2002,7 +2054,9 @@
         </div>
         <div class="media-actions">
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
+          ${requested ? `<button class="btn sm reset-shortcut" data-reset-request="1" data-type="youtube" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-milestone="${milestone}" data-source="${esc(v.youtubeUrl || '')}">Zerar pedido</button>` : ''}
           <button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>
+          ${trafficRequested ? `<button class="btn sm reset-shortcut" data-reset-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-source="${esc(v.youtubeUrl || '')}">Zerar tráfego</button>` : ''}
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
         </div>
       </div>
@@ -2465,6 +2519,38 @@
   menuImportBtn.addEventListener('click', () => { closeMenuDrawer(); qs('importInput').click(); });
 
   qs('artistGrid').addEventListener('click', async (event) => {
+    const resetTrafficBtn = event.target.closest('[data-reset-traffic]');
+    if (resetTrafficBtn) {
+      try {
+        await resetMediaRequestByParams({
+          type: 'traffic',
+          artistName: resetTrafficBtn.getAttribute('data-artist') || '',
+          itemTitle: resetTrafficBtn.getAttribute('data-title') || '',
+          milestone: 0,
+          sourceUrl: resetTrafficBtn.getAttribute('data-source') || '',
+        }, 'Solicitação de tráfego zerada.');
+      } catch (err) {
+        showErrorToast(err, 'Não foi possível zerar o tráfego deste item.');
+      }
+      return;
+    }
+
+    const resetRequestBtn = event.target.closest('[data-reset-request]');
+    if (resetRequestBtn) {
+      try {
+        await resetMediaRequestByParams({
+          type: resetRequestBtn.getAttribute('data-type') || 'manual',
+          artistName: resetRequestBtn.getAttribute('data-artist') || '',
+          itemTitle: resetRequestBtn.getAttribute('data-title') || '',
+          milestone: Number(resetRequestBtn.getAttribute('data-milestone') || 0),
+          sourceUrl: resetRequestBtn.getAttribute('data-source') || '',
+        }, 'Pedido enviado zerado para este item.');
+      } catch (err) {
+        showErrorToast(err, 'Não foi possível zerar o pedido deste item.');
+      }
+      return;
+    }
+
     const trafficBtn = event.target.closest('[data-quick-traffic]');
     if (trafficBtn) {
       openTrafficDrawerForVideo({
