@@ -3,10 +3,2585 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Meu Projeto</title>
+  <title>Relatório dos Artistas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#060606;--panel:#101014;--panel2:#13131a;
+      --line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.16);
+      --txt:#fff;--muted:rgba(255,255,255,.6);--soft:rgba(255,255,255,.34);
+      --spotify:#1db954;--youtube:#ff0033;--red:#ef233c;--orange:#ff6b00;
+      --radius:20px;--shadow:0 16px 48px rgba(0,0,0,.44)
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:radial-gradient(ellipse at top,#18181c 0,#0a0a0d 40%,#040405 100%);color:var(--txt);font-family:Inter,sans-serif;min-height:100vh}
+    body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(circle at center,black 40%,transparent 90%)}
+    button,input{font:inherit} a{color:inherit;text-decoration:none}
+    .hidden{display:none!important}
+
+    .header{position:sticky;top:0;z-index:40;background:rgba(6,6,9,.88);backdrop-filter:blur(24px);border-bottom:1px solid var(--line)}
+    .header-inner,.wrap{max-width:1720px;margin:0 auto;padding:0 28px}
+    .header-inner{height:74px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#00b4d8,#1f9d8b);display:grid;place-items:center;font:800 21px/1 Syne,sans-serif;box-shadow:0 6px 22px rgba(0,180,216,.38);flex-shrink:0}
+    .brand h1{margin:0;font:800 20px/1 Syne,sans-serif}
+    .brand p{margin:3px 0 0;color:var(--muted);font-size:11px}
+    .actions{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+    .chip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);font-size:11px;white-space:nowrap}
+    .btn{border:0;border-radius:11px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;transition:.14s}
+    .btn:hover{transform:translateY(-1px);filter:brightness(1.12)}
+    .btn:disabled{opacity:.55;cursor:not-allowed;filter:none;transform:none}
+    .btn.red{background:#ef233c;color:#fff;box-shadow:0 5px 18px rgba(239,35,60,.38)}
+    .btn.orange{background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.45);color:#ffd8b8}
+    .btn.dark{background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line2)}
+    .btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
+    .menu-toggle{display:none;align-items:center;justify-content:center;gap:8px;min-width:42px;height:42px;padding:0 12px}
+    .menu-toggle .bar{width:16px;height:2px;background:#fff;border-radius:999px;display:block}
+    .menu-toggle .bars{display:grid;gap:3px}
+
+    .menu-drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);z-index:90}
+    .menu-drawer{position:fixed;top:0;right:0;height:100%;width:min(360px,88vw);background:#0b0b10;border-left:1px solid var(--line2);z-index:100;display:flex;flex-direction:column;box-shadow:-16px 0 42px rgba(0,0,0,.35);transform:translateX(102%);opacity:0;transition:transform .28s ease, opacity .28s ease;will-change:transform,opacity}
+    .menu-drawer:not(.hidden){transform:translateX(0);opacity:1}
+    .menu-drawer-head{padding:18px 18px 14px;border-bottom:1px solid var(--line)}
+    .menu-drawer-head h3{margin:0 0 4px;font:800 20px/1 Syne,sans-serif}
+    .menu-drawer-head p{margin:0;color:var(--muted);font-size:12px}
+    .menu-drawer-body{padding:14px 16px;display:grid;gap:10px;overflow:auto}
+    .menu-drawer .btn{width:100%;justify-content:center}
+    .menu-drawer-footer{padding:14px 16px;border-top:1px solid var(--line);display:flex;gap:10px}
+    .menu-drawer-footer .btn{flex:1}
+
+    .wrap{padding-top:20px;padding-bottom:40px}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+    .left-col{min-width:0;display:flex;flex-direction:column;gap:20px}
+
+    .traffic-section{display:flex;flex-direction:column;gap:10px}
+    .traffic-head{display:flex;align-items:center;gap:10px}
+    .traffic-head h2{margin:0;font:800 18px/1 Syne,sans-serif;color:#fff}
+    .traffic-badge{background:#ff6b00;color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.06em}
+    .traffic-card{display:grid;grid-template-columns:72px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:rgba(255,107,0,.06);border:1px solid rgba(255,107,0,.25);transition:.15s;cursor:pointer}
+    .traffic-card:hover{background:rgba(255,107,0,.12);border-color:rgba(255,107,0,.45)}
+    .traffic-thumb{width:72px;height:42px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .traffic-info{min-width:0}
+    .traffic-artist{font-size:10px;font-weight:800;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+    .traffic-title{font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .traffic-meta{font-size:11px;color:var(--muted);margin-top:2px}
+    .traffic-cta{flex-shrink:0;text-align:center}
+    .traffic-cta .cta-label{background:#ff6b00;color:#fff;font-size:10px;font-weight:800;padding:5px 10px;border-radius:8px;white-space:nowrap;display:block}
+    .traffic-cta .cta-views{font-size:10px;color:var(--soft);margin-top:4px;text-align:center}
+
+    .section-head{margin:0}
+    .section-head h2{margin:0 0 3px;font:800 21px/1 Syne,sans-serif}
+    .section-head p{margin:0;color:var(--muted);font-size:12px}
+
+    .artist-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.014));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .artist-card{overflow:hidden}
+
+    .artist-top{display:flex;gap:12px;align-items:center;padding:16px 16px 10px}
+    .artist-avatar{width:54px;height:54px;border-radius:14px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .artist-info{min-width:0;flex:1}
+    .artist-name{font:800 17px/1.1 Syne,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 0 3px}
+    .artist-name a:hover{text-decoration:underline;opacity:.85}
+    .artist-ts{font-size:10px;color:var(--muted)}
+    .pill-row{display:flex;gap:6px;padding:0 16px 12px}
+    .tag{padding:4px 9px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border:1px solid;display:inline-flex;align-items:center;gap:5px}
+    .tag svg{width:10px;height:10px;display:block}
+    .tag.sp{border-color:rgba(29,185,84,.3);color:#7ddf9d}
+    .tag.yt{border-color:rgba(255,0,51,.28);color:#ff8fa3}
+
+    .platforms{padding:0 12px 14px;display:flex;flex-direction:column;gap:10px}
+    .platform{border-radius:14px;border:1px solid var(--line);overflow:hidden}
+    .platform.sp-block{border-color:rgba(29,185,84,.14)}
+    .platform.yt-block{border-color:rgba(255,0,51,.12)}
+
+    .plat-head{display:flex;align-items:center;gap:7px;padding:10px 13px;border-bottom:1px solid var(--line);font:800 9px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+    .plat-head svg{width:12px;height:12px;display:block}
+    .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .dot.sp{background:var(--spotify)} .dot.yt{background:var(--youtube)}
+
+    .plat-metrics{display:flex;border-bottom:1px solid var(--line)}
+    .mc{flex:1;padding:11px 13px;min-width:0;border-right:1px solid var(--line)}
+    .mc:last-child{border-right:none}
+    .mc-k{font:800 9px/1 Inter,sans-serif;letter-spacing:.11em;text-transform:uppercase;color:var(--soft);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mc-v{font:800 20px/1 Syne,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mc-s{margin-top:4px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .delta{font-size:9px;font-weight:700}
+    .up{color:#6ddf9e} .dn{color:#ff8fa3} .neu{color:var(--soft)}
+
+    .media-list{display:grid;gap:0}
+    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:center;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
+    .media-row:hover{background:rgba(255,255,255,.03)}
+    .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .media-thumb.yt-thumb{height:30px;border-radius:6px}
+    .media-info{min-width:0}
+    .media-title{font-size:12px;font-weight:700;line-height:1.3;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .media-title a:hover{text-decoration:underline;opacity:.8}
+    .media-date{font-size:10px;color:var(--muted)}
+    .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
+    .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
+    .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
+    .no-data{font-size:10px;color:var(--soft);font-style:italic}
+    .demand-do{background:rgba(65,211,125,.15);border:1px solid rgba(65,211,125,.45);color:#86efac}
+    .demand-queue{background:rgba(255,217,61,.12);border:1px solid rgba(255,217,61,.45);color:#ffe585}
+    .art-task{padding:11px 12px;border-top:1px solid var(--line);display:grid;gap:8px}
+    .art-task-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .art-task-main{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+    .task-cover{width:42px;height:42px;border-radius:8px;object-fit:cover;background:#14141c;border:1px solid var(--line);flex-shrink:0}
+    .art-task-title{font-size:12px;font-weight:700;line-height:1.3}
+    .art-task-meta{font-size:10px;color:var(--muted)}
+    .art-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .status-pill{font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.05)}
+    .status-pending{color:#ffcf80;border-color:rgba(255,207,128,.45)}
+    .status-progress{color:#8cc8ff;border-color:rgba(140,200,255,.45)}
+    .status-ready{color:#86efac;border-color:rgba(134,239,172,.45)}
+    .status-done{color:#d1d5db;border-color:rgba(209,213,219,.45)}
+    .upload-status{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03);display:grid;gap:7px}
+    .upload-status.uploading{border-color:rgba(140,200,255,.35);background:rgba(140,200,255,.05)}
+    .upload-status.done{border-color:rgba(134,239,172,.38);background:rgba(134,239,172,.06)}
+    .upload-status.error{border-color:rgba(255,153,171,.48);background:rgba(255,153,171,.06)}
+    .upload-status-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:700}
+    .upload-progress{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+    .upload-progress-fill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,#1db954,#8cc8ff);transition:width .12s linear}
+    .btn.requested{background:rgba(65,211,125,.2);border:1px solid rgba(65,211,125,.45);color:#c5f8d9}
+    .btn.upload-shortcut{background:rgba(35,151,239,.2);border:1px solid rgba(35,151,239,.45);color:#d4ecff}
+    .task-group{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}
+    .task-group-title{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);border-bottom:1px solid var(--line)}
+    .task-group-title.requested{color:#86efac}
+    .task-group-title.pending{color:#ffcf80}
+
+    .ranking{display:none}
+    .ranking .inner{padding:16px}
+    .ranking h3{margin:0 0 3px;font:800 18px/1 Syne,sans-serif}
+    .rank-desc{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.4}
+    .rank-meta h4{margin:0 0 2px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+    .rank-meta p{margin:0;color:rgba(255,255,255,.82);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .priority-dot{width:10px;height:10px;border-radius:50%;display:block;box-shadow:0 0 0 1px rgba(255,255,255,.22) inset;flex-shrink:0}
+    .priority-do{background:#41d37d}
+    .priority-queue{background:#ffd93d}
+    .priority-idle{background:#6b7280}
+      .flow-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px;color:var(--muted)}
+      .flow-arrow{opacity:.7}
+    .gaveta-board{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+    .gaveta-item{border:1px solid var(--line);border-radius:12px;padding:10px;background:rgba(255,255,255,.02);margin-bottom:10px}
+    .gaveta-item h4{margin:0 0 6px;font-size:13px}
+    .gaveta-meta{font-size:11px;color:var(--muted);margin-bottom:8px}
+    .gaveta-links{display:flex;gap:6px;flex-wrap:wrap}
+    .rank-list{display:grid;gap:7px}
+    .rank-item{display:grid;grid-template-columns:26px 34px minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid var(--line)}
+    .rank-pos{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:rgba(255,255,255,.06);font:800 11px/1 Syne,sans-serif;flex-shrink:0}
+    .rank-item img{width:34px;height:34px;border-radius:8px;object-fit:cover;background:#111;flex-shrink:0}
+    .rank-meta h4{margin:0 0 2px;font-size:12px;line-height:1.25;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .rank-meta p{margin:0;color:rgba(255,255,255,.82);font-size:10px;line-height:1.25;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+    .info-box{margin-top:18px;padding:13px 14px;border-radius:13px;background:rgba(29,185,84,.05);border:1px solid rgba(29,185,84,.15);font-size:11px;color:var(--muted);line-height:1.6}
+    .info-box strong{color:var(--spotify);font-size:10px;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px}
+
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.58);backdrop-filter:blur(5px);z-index:70}
+    .drawer{position:fixed;right:0;top:0;height:100%;width:min(430px,96vw);background:#0b0b10;border-left:1px solid var(--line2);z-index:80;display:flex;flex-direction:column}
+    .drawer-head{padding:20px 22px 13px;border-bottom:1px solid var(--line)}
+    .drawer-head h3{margin:0 0 6px;font:800 21px/1 Syne,sans-serif}
+    .drawer-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+    .drawer-body{padding:16px 22px;overflow:auto;display:grid;gap:14px}
+    .field label{display:block;margin:0 0 7px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:800}
+    .input{width:100%;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#12121a;color:#fff;outline:none;transition:.14s}
+    .input:focus{border-color:var(--line2);background:#15151e}
+    .hint{color:var(--muted);font-size:11px;line-height:1.5;padding:10px 13px;border-radius:11px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+    .form-error{color:#ff9cab;font-size:12px;line-height:1.45}
+    .drawer-footer{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;flex-shrink:0}
+    .saved-item{padding:12px;border-radius:13px;background:#10101a;border:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+    .saved-item h4{margin:0 0 3px;font-size:14px}
+    .saved-item p{margin:0;color:var(--muted);font-size:10px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .empty{padding:24px;text-align:center;color:var(--muted);font-size:12px}
+    .error-card{padding:16px;color:#ff9cab;font-size:12px;line-height:1.5}
+    .footer-note{color:var(--soft);font-size:11px;line-height:1.6}
+
+    .auth-overlay{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:radial-gradient(circle at 20% 20%,rgba(255,31,38,.12),transparent 40%),rgba(5,5,8,.96)}
+    .auth-card{width:min(420px,92vw);padding:24px;border-radius:18px;border:1px solid var(--line2);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));box-shadow:var(--shadow)}
+    .auth-title{margin:0 0 6px;font:800 24px/1 Syne,sans-serif}
+    .auth-sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+    .auth-row{display:flex;gap:8px}
+    .auth-input{flex:1;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#12121a;color:#fff;outline:none}
+    .auth-input:focus{border-color:var(--line2)}
+    .auth-error{margin-top:10px;color:#ff9cab;font-size:12px;min-height:16px}
+    .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:130;display:grid;gap:8px;max-width:min(92vw,360px)}
+    .toast{padding:11px 12px;border-radius:12px;border:1px solid var(--line2);background:rgba(12,12,16,.95);font-size:12px;line-height:1.4;box-shadow:0 12px 28px rgba(0,0,0,.32)}
+    .toast.success{border-color:rgba(134,239,172,.45);color:#d9fbe6}
+    .toast.error{border-color:rgba(255,153,171,.5);color:#ffd3db}
+    .toast.info{border-color:rgba(140,200,255,.45);color:#d7ebff}
+
+    @media(max-width:1700px){.artist-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:1200px){.artist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.artist-grid{grid-template-columns:1fr}}
+    @media(max-width:720px){
+      .header-inner,.wrap{padding-left:14px;padding-right:14px}
+      .artist-grid{grid-template-columns:1fr}
+      .brand p{display:none}
+      .actions{display:none}
+      .menu-toggle{display:inline-flex}
+      .header-inner{gap:10px}
+      .brand h1{font-size:18px}
+      .ranking{position:static}
+    }
+    @media(min-width:721px){.menu-drawer,.menu-drawer-backdrop{display:none!important}}
+  </style>
 </head>
 <body>
-  <h1>Funcionando</h1>
-  <p>Meu ambiente no VS Code está pronto.</p>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="mark">D</div>
+      <div>
+        <h1>Monitoramento dos artistas</h1>
+        <p>Spotify e YouTube para decisão rápida de arte e tráfego.</p>
+      </div>
+    </div>
+    <button class="btn dark menu-toggle" id="menuBtn" aria-label="Abrir menu">
+      <span class="bars" aria-hidden="true"><span class="bar"></span><span class="bar"></span><span class="bar"></span></span>
+    </button>
+    <div class="actions">
+      <div class="chip" id="lastSync">Carregando...</div>
+      <button class="btn dark" id="refreshBtn">Atualizar agora</button>
+      <button class="btn dark" id="artBtn">Artes <span id="artPendingCount">0</span></button>
+      <button class="btn dark" id="exportBtn">Exportar lista</button>
+      <button class="btn dark" id="importBtn">Importar lista</button>
+      <button class="btn dark" id="manageBtn">Artistas</button>
+      <button class="btn red" id="addBtn">+ Cadastrar</button>
+      <input id="importInput" type="file" accept="application/json" class="hidden" />
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <section class="left-col">
+      <div class="artist-grid" id="artistGrid"></div>
+      <div class="footer-note">Painel de acompanhamento e solicitação criativa.</div>
+    </section>
+  </div>
+</main>
+
+<div class="menu-drawer-backdrop hidden" id="menuBackdrop"></div>
+<aside class="menu-drawer hidden" id="menuDrawer" aria-label="Menu do painel">
+  <div class="menu-drawer-head">
+    <h3>Menu</h3>
+    <p>Ações rápidas do painel.</p>
+  </div>
+  <div class="menu-drawer-body">
+    <button class="btn dark" id="menuRefreshBtn">Atualizar agora</button>
+    <button class="btn dark" id="menuArtBtn">🎨 Artes</button>
+    <button class="btn dark" id="menuExportBtn">Exportar lista</button>
+    <button class="btn dark" id="menuImportBtn">Importar lista</button>
+    <button class="btn dark" id="menuManageBtn">Artistas</button>
+    <button class="btn red" id="menuAddBtn">+ Cadastrar</button>
+  </div>
+  <div class="menu-drawer-footer">
+    <button class="btn dark" id="menuCloseBtn">Fechar</button>
+  </div>
+</aside>
+
+<aside class="drawer hidden" id="artDrawer">
+  <div class="drawer-head">
+    <h3>Solicitações de Arte</h3>
+    <p>Pedido rápido por item: enviar para criação, anexar referência e acompanhar entrega.</p>
+  </div>
+  <div class="drawer-body">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn dark sm" id="artTabPending">Aguardando</button>
+      <button class="btn dark sm" id="artTabProgress">Produção</button>
+      <button class="btn dark sm" id="artTabReady">Prontas</button>
+      <button class="btn dark sm" id="artTabDone">Entregues</button>
+      <button class="btn red sm" id="artAddManualBtn">+ Arte manual</button>
+      <button class="btn dark sm" id="resetRequestsBtn">Zerar item selecionado</button>
+    </div>
+    <div class="flow-row" style="margin-top:10px">
+      <span class="status-pill status-pending">Solicitada</span>
+      <span class="flow-arrow">-></span>
+      <span class="status-pill status-progress">Producao</span>
+      <span class="flow-arrow">-></span>
+      <span class="status-pill status-ready">Pronta</span>
+      <span class="flow-arrow">-></span>
+      <span class="status-pill status-done">Entregue</span>
+    </div>
+    <div id="artTasksList" class="media-list"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn dark" id="closeArt">Fechar</button>
+  </div>
+</aside>
+
+<div class="drawer-backdrop hidden" id="drawerBackdrop"></div>
+<aside class="drawer hidden" id="addDrawer">
+  <div class="drawer-head">
+    <h3>Cadastrar artista</h3>
+    <p>Nome manual obrigatório para evitar confusão.</p>
+  </div>
+  <div class="drawer-body">
+    <div class="field"><label>Nome do artista</label><input class="input" id="artistName" placeholder="Ex.: Julio Torres"></div>
+    <div class="field"><label>Link do artista no Spotify</label><input class="input" id="spotifyUrl" placeholder="https://open.spotify.com/artist/..." /></div>
+    <div class="field"><label>Link do canal do YouTube</label><input class="input" id="youtubeUrl" placeholder="https://www.youtube.com/@handle" /></div>
+    <div class="hint">
+      YouTube aceita:<br>
+      youtube.com/@handle, youtube.com/c/nome,<br>
+      youtube.com/user/nome, youtube.com/channel/UCxxx
+    </div>
+    <div class="form-error hidden" id="formError"></div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn dark" id="closeAdd">Fechar</button>
+    <button class="btn red" id="saveArtist">Salvar artista</button>
+  </div>
+</aside>
+
+<aside class="drawer hidden" id="manageDrawer">
+  <div class="drawer-head">
+    <h3>Lista de artistas</h3>
+    <p>Remova artistas individualmente.</p>
+  </div>
+  <div class="drawer-body" id="savedArtistsList"></div>
+  <div class="drawer-footer">
+    <div></div>
+    <button class="btn dark" id="closeManage">Fechar</button>
+  </div>
+</aside>
+
+<aside class="drawer hidden" id="trafficDrawer">
+  <div class="drawer-head">
+    <h3>Rodar Tráfego</h3>
+    <p>Defina a meta de visualizações e veja o valor estimado automaticamente.</p>
+  </div>
+  <div class="drawer-body">
+    <div class="hint" id="trafficSummary">Selecione um vídeo com baixa visualização para iniciar.</div>
+    <div class="field">
+      <label>Meta de visualizações</label>
+      <input class="input" id="trafficViewsInput" placeholder="Ex.: 5.000">
+    </div>
+    <div class="field">
+      <label>Investimento (R$)</label>
+      <input class="input" id="trafficBudgetInput" placeholder="Estimado automaticamente" readonly>
+    </div>
+    <div class="hint" id="trafficEstimateHint">Digite a meta de visualizações para calcular o valor estimado.</div>
+    <button class="btn red" id="trafficSendBtn">Enviar solicitação de tráfego</button>
+    <button class="btn dark hidden" id="trafficCancelBtn">Cancelar tráfego solicitado</button>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn dark" id="closeTraffic">Fechar</button>
+  </div>
+</aside>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<script>
+  const BACKEND_PROD_URL = 'https://gaveta-monitor.onrender.com';
+  const BACKEND_LOCAL_URL = 'http://localhost:3000';
+  const STORAGE_KEY = 'gaveta-radar-v5-artists';
+  const DASHBOARD_CACHE_KEY = 'gaveta-radar-v5-dashboard-cache';
+  const CLOUD_SYNC_BOOTSTRAP_KEY = 'gaveta-radar-v5-cloud-bootstrap';
+  const FULL_REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+  const BACKEND_REQUEST_TIMEOUT_MS = 20000;
+  const LAST_FULL_REFRESH_KEY = 'gaveta-radar-v5-last-full-refresh';
+  const ART_TASKS_KEY = 'gaveta-radar-v5-art-tasks';
+  const GAVETA_CALENDAR_ID = '054ef9390875ee8d2eafa8c85b0d6f3f76701f5aa907a1685ff7a005a12f8ebb@group.calendar.google.com';
+  const TRAFFIC_COST_PER_VIEW = 0.015;
+
+  function initialBackendUrl() {
+    const forced = new URLSearchParams(window.location.search).get('api');
+    if (forced) return forced;
+    const host = window.location.hostname;
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    const isFileProtocol = window.location.protocol === 'file:';
+    return (isLocalHost || isFileProtocol) ? BACKEND_LOCAL_URL : BACKEND_PROD_URL;
+  }
+
+  let activeBackendUrl = initialBackendUrl();
+
+  function backendCandidates() {
+    if (activeBackendUrl === BACKEND_LOCAL_URL) return [BACKEND_LOCAL_URL, BACKEND_PROD_URL];
+    if (activeBackendUrl === BACKEND_PROD_URL) return [BACKEND_PROD_URL, BACKEND_LOCAL_URL];
+    return [activeBackendUrl, BACKEND_PROD_URL, BACKEND_LOCAL_URL];
+  }
+
+  async function fetchBackendJson(pathname, options = {}) {
+    let lastError = null;
+    for (const baseUrl of backendCandidates()) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), BACKEND_REQUEST_TIMEOUT_MS);
+      try {
+        const mergedOptions = {
+          ...options,
+          signal: options?.signal || controller.signal,
+        };
+
+        const res = await fetch(`${baseUrl}${pathname}`, mergedOptions);
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          data = { ok: false, error: text || 'Resposta inválida do servidor.' };
+        }
+
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Erro no servidor');
+        activeBackendUrl = baseUrl;
+        return data;
+      } catch (err) {
+        if (err?.name === 'AbortError') {
+          lastError = new Error('Tempo de resposta do backend esgotado. Tente novamente.');
+        } else {
+          lastError = err;
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+    throw lastError || new Error('Não foi possível conectar ao backend.');
+  }
+
+  async function fetchDashboardPayload(artists) {
+    return fetchBackendJson('/api/dashboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artists }),
+    });
+  }
+
+  async function fetchGavetaRequests() {
+    return fetchBackendJson('/api/gaveta/requests', { method: 'GET' });
+  }
+
+  async function createGavetaRequest(task) {
+    return fetchBackendJson('/api/gaveta/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task }),
+    });
+  }
+
+  async function clearGavetaRequests() {
+    return fetchBackendJson('/api/gaveta/requests', {
+      method: 'DELETE',
+    });
+  }
+
+  async function clearGavetaRequestByTask(task) {
+    const signature = String(task?.signature || taskSignature(task || {})).trim();
+    const params = new URLSearchParams();
+    if (signature) params.set('signature', signature);
+    if (task?.type) params.set('type', String(task.type));
+    if (task?.artistName) params.set('artistName', String(task.artistName));
+    if (task?.itemTitle) params.set('itemTitle', String(task.itemTitle));
+    if (task?.sourceUrl) params.set('sourceUrl', String(task.sourceUrl));
+    if (Number(task?.milestone || 0) > 0) params.set('milestone', String(Number(task.milestone || 0)));
+    if (!params.toString()) throw new Error('Dados da solicitacao ausentes para reset.');
+
+    return fetchBackendJson(`/api/gaveta/requests?${params.toString()}`, {
+      method: 'DELETE',
+    });
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error(`Falha ao ler ${file.name || 'arquivo'}.`));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function extFromFileName(name) {
+    const safe = String(name || '').trim();
+    const dot = safe.lastIndexOf('.');
+    if (dot < 0) return 'png';
+    const ext = safe.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return ext || 'png';
+  }
+
+  function normalizeSlotFileName(task, file, slot) {
+    const artist = String(task.artistName || 'artista').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'artista';
+    const item = String(task.itemTitle || 'arte').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'arte';
+    const ext = extFromFileName(file?.name);
+    return `${artist}-${item}-${slot}.${ext}`;
+  }
+
+  function postGavetaUpload(payload, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${activeBackendUrl}/api/gaveta/upload`);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.responseType = 'text';
+
+      xhr.upload.onprogress = event => {
+        if (!event.lengthComputable || typeof onProgress !== 'function') return;
+        onProgress(Math.max(0, Math.min(1, event.loaded / Math.max(event.total || 1, 1))));
+      };
+
+      xhr.onload = () => {
+        let data = null;
+        try {
+          data = JSON.parse(xhr.responseText || '{}');
+        } catch {
+          data = { ok: false, error: xhr.responseText || 'Resposta inválida do servidor.' };
+        }
+
+        if (xhr.status < 200 || xhr.status >= 300 || !data?.ok) {
+          reject(new Error(data?.error || `Falha no upload (${xhr.status}).`));
+          return;
+        }
+
+        resolve(data);
+      };
+
+      xhr.onerror = () => reject(new Error('Falha de rede durante o upload.'));
+      xhr.send(JSON.stringify(payload));
+    });
+  }
+
+  async function uploadGavetaAssets(task, files, onStatus) {
+    const prepared = [];
+    const totalFiles = Math.max(1, files.length);
+
+    for (let i = 0; i < files.length; i += 1) {
+      const file = files[i];
+      if (typeof onStatus === 'function') {
+        onStatus({
+          phase: 'preparing',
+          progress: (i / totalFiles) * 100,
+          message: `Preparando ${i + 1}/${files.length}: ${file.name || 'arquivo'}`,
+        });
+      }
+
+      const dataUrl = await readFileAsDataUrl(file);
+      prepared.push({
+        name: file.name,
+        mime: file.type || 'application/octet-stream',
+        dataUrl,
+      });
+    }
+
+    const uploaded = [];
+
+    for (let i = 0; i < prepared.length; i += 1) {
+      const file = prepared[i];
+      const fileBase = i / totalFiles;
+      const fileTop = (i + 1) / totalFiles;
+
+      if (typeof onStatus === 'function') {
+        onStatus({
+          phase: 'uploading',
+          progress: fileBase * 100,
+          message: `Enviando ${i + 1}/${prepared.length}: ${file.name}`,
+        });
+      }
+
+      const response = await postGavetaUpload({
+        taskId: task.id || `upload-${Date.now()}`,
+        artistName: task.artistName,
+        itemTitle: task.itemTitle,
+        files: [file],
+      }, progress => {
+        if (typeof onStatus !== 'function') return;
+        const scaled = fileBase + ((fileTop - fileBase) * progress);
+        onStatus({
+          phase: 'uploading',
+          progress: scaled * 100,
+          message: `Enviando ${i + 1}/${prepared.length}: ${file.name}`,
+        });
+      });
+
+      uploaded.push(...(Array.isArray(response.uploaded) ? response.uploaded : []));
+    }
+
+    if (typeof onStatus === 'function') {
+      onStatus({
+        phase: 'done',
+        progress: 100,
+        message: `Upload concluído (${uploaded.length} arquivo(s)).`,
+      });
+    }
+
+    return { ok: true, uploaded };
+  }
+
+  const qs = id => document.getElementById(id);
+  const esc = (v = '') => String(v)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+  const addDrawer = qs('addDrawer');
+  const manageDrawer = qs('manageDrawer');
+  const backdrop = qs('drawerBackdrop');
+  const menuBtn = qs('menuBtn');
+  const menuDrawer = qs('menuDrawer');
+  const menuBackdrop = qs('menuBackdrop');
+  const menuRefreshBtn = qs('menuRefreshBtn');
+  const menuArtBtn = qs('menuArtBtn');
+  const menuExportBtn = qs('menuExportBtn');
+  const menuImportBtn = qs('menuImportBtn');
+  const menuManageBtn = qs('menuManageBtn');
+  const menuAddBtn = qs('menuAddBtn');
+  const menuCloseBtn = qs('menuCloseBtn');
+  const artBtn = qs('artBtn');
+  const artDrawer = qs('artDrawer');
+  const trafficDrawer = qs('trafficDrawer');
+  const closeArtBtn = qs('closeArt');
+  const closeTrafficBtn = qs('closeTraffic');
+  const artPendingCount = qs('artPendingCount');
+  const artForecastList = qs('artForecastList');
+  const artTasksList = qs('artTasksList');
+  const gavetaRequestCount = qs('gavetaRequestCount');
+  const gavetaRequestsList = qs('gavetaRequestsList');
+  const uploadReport = qs('uploadReport');
+  const artTabPending = qs('artTabPending');
+  const artTabProgress = qs('artTabProgress');
+  const artTabReady = qs('artTabReady');
+  const artTabDone = qs('artTabDone');
+  const artAddManualBtn = qs('artAddManualBtn');
+  const resetRequestsBtn = qs('resetRequestsBtn');
+  const trafficBudgetInput = qs('trafficBudgetInput');
+  const trafficViewsInput = qs('trafficViewsInput');
+  const trafficSendBtn = qs('trafficSendBtn');
+  const trafficCancelBtn = qs('trafficCancelBtn');
+  const trafficSummary = qs('trafficSummary');
+  const trafficEstimateHint = qs('trafficEstimateHint');
+  const formError = qs('formError');
+  const refreshBtn = qs('refreshBtn');
+  const toastWrap = qs('toastWrap');
+  let artistsCloudSyncQueue = Promise.resolve();
+  let artTasks = [];
+  const uploadStates = new Map();
+  const quickRequestSubmitting = new Set();
+  let remoteRequests = [];
+  const trafficSubmittingBySource = new Set();
+  let artActiveTab = 'pending';
+  let artArtistFilter = '';
+  let artTaskFocusId = '';
+  let trafficDraft = null;
+  let trafficEditTargetTask = null;
+  let trafficInputLock = false;
+
+  function showToast(message, type = 'info') {
+    if (!toastWrap || !message) return;
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = String(message);
+    toastWrap.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(6px)';
+      setTimeout(() => el.remove(), 180);
+    }, 2800);
+  }
+
+  function showErrorToast(error, fallbackMessage) {
+    const raw = String(error?.message || '').trim();
+    const message = raw || String(fallbackMessage || 'Erro inesperado. Tente novamente.');
+    showToast(message, 'error');
+  }
+
+  function taskSignatureFromParts(type, artistName, itemTitle, milestone) {
+    return [type || '', artistName || '', itemTitle || '', Number(milestone || 0)].join('|').toLowerCase();
+  }
+
+  function quickRequestKey(type, artistName, itemTitle, milestone) {
+    return taskSignatureFromParts(type, artistName, itemTitle, milestone);
+  }
+
+  function normalizeSigText(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
+  }
+
+  function taskLooseSignatureFromParts(type, artistName, itemTitle) {
+    return [normalizeSigText(type), normalizeSigText(artistName), normalizeSigText(itemTitle)].join('|');
+  }
+
+  function normalizeSourceUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      const host = String(u.hostname || '').replace(/^www\./i, '').toLowerCase();
+      const pathname = String(u.pathname || '').replace(/\/+$/, '').toLowerCase();
+      return `${host}${pathname}`;
+    } catch {
+      return raw.toLowerCase();
+    }
+  }
+
+  function parseBrCurrencyInput(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return 0;
+    const normalized = raw.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+    const n = Number(normalized);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+
+  function parseCurrencyToCents(text) {
+    const digits = String(text || '').replace(/\D/g, '');
+    if (!digits) return 0;
+    return Math.max(0, Number(digits));
+  }
+
+  function formatCurrencyFromCents(cents) {
+    const n = Math.max(0, Number(cents || 0));
+    return (n / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function parseViewsInput(text) {
+    const raw = String(text || '').trim().replace(/[^0-9]/g, '');
+    const n = Number(raw || 0);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+  }
+
+  function formatBrCurrency(value) {
+    const n = Number(value || 0);
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatViews(value) {
+    const n = Number(value || 0);
+    return n.toLocaleString('pt-BR');
+  }
+
+  function updateTrafficEstimateHint(budget, views) {
+    if (!trafficEstimateHint) return;
+    if (!budget && !views) {
+      trafficEstimateHint.textContent = 'Digite a meta de visualizações para calcular o valor estimado.';
+      return;
+    }
+    trafficEstimateHint.textContent = `Estimativa: ${formatBrCurrency(budget)} para aproximadamente ${formatViews(views)} visualizações.`;
+  }
+
+  function fillTrafficByBudget(budget) {
+    const b = Math.max(0, Number(budget || 0));
+    const views = Math.max(0, Math.round(b / TRAFFIC_COST_PER_VIEW));
+    if (trafficBudgetInput) {
+      const cents = Math.round(b * 100);
+      trafficBudgetInput.value = cents > 0 ? formatCurrencyFromCents(cents) : '';
+    }
+    if (trafficViewsInput) trafficViewsInput.value = views ? formatViews(views) : '';
+    updateTrafficEstimateHint(b, views);
+  }
+
+  function fillTrafficByViews(views) {
+    const v = Math.max(0, Number(views || 0));
+    const budget = v * TRAFFIC_COST_PER_VIEW;
+    if (trafficViewsInput) trafficViewsInput.value = v ? formatViews(v) : '';
+    if (trafficBudgetInput) {
+      const cents = Math.round(budget * 100);
+      trafficBudgetInput.value = cents > 0 ? formatCurrencyFromCents(cents) : '';
+    }
+    updateTrafficEstimateHint(budget, v);
+  }
+
+  function budgetFromTrafficTask(task) {
+    const direct = Number(task?.trafficBudget || 0);
+    if (direct > 0) return direct;
+    const note = String(task?.note || '');
+    const match = note.match(/R\$\s*([\d\.]+,\d{2})/i);
+    if (!match) return 0;
+    return parseBrCurrencyInput(match[1]);
+  }
+
+  function findRequestedTrafficTask(artistName, itemTitle, sourceUrl) {
+    const loose = taskLooseSignatureFromParts('traffic', artistName, itemTitle);
+    const source = normalizeSourceUrl(sourceUrl);
+    return artTasks.find(task => {
+      if (String(task.type || '').toLowerCase() !== 'traffic') return false;
+      if (!isTaskRequested(task)) return false;
+      const looseTask = taskLooseSignatureFromParts(task.type, task.artistName, task.itemTitle) === loose;
+      const sourceTask = source && normalizeSourceUrl(task.sourceUrl) === source;
+      return looseTask || sourceTask;
+    }) || null;
+  }
+
+  function setTrafficDrawerMode(mode) {
+    const editing = mode === 'edit';
+    if (trafficSendBtn) {
+      trafficSendBtn.textContent = editing ? 'Salvar correção de tráfego' : 'Enviar solicitação de tráfego';
+    }
+    if (trafficCancelBtn) {
+      trafficCancelBtn.classList.toggle('hidden', !editing);
+      trafficCancelBtn.disabled = false;
+      trafficCancelBtn.textContent = 'Cancelar tráfego solicitado';
+    }
+  }
+
+  function setTrafficSubmitting(sourceUrl, on) {
+    const key = normalizeSourceUrl(sourceUrl);
+    if (!key) return;
+    if (on) trafficSubmittingBySource.add(key);
+    else trafficSubmittingBySource.delete(key);
+    refreshQuickRequestButtonsInGrid();
+  }
+
+  function hasRequestedSignature(type, artistName, itemTitle, milestone, sourceUrl) {
+    const signature = taskSignatureFromParts(type, artistName, itemTitle, milestone);
+    const loose = taskLooseSignatureFromParts(type, artistName, itemTitle);
+    const source = normalizeSourceUrl(sourceUrl);
+
+    const local = artTasks.some(task => {
+      const exact = String(task.signature || '') === signature;
+      const looseTask = taskLooseSignatureFromParts(task.type, task.artistName, task.itemTitle) === loose;
+      const sourceTask = source && normalizeSourceUrl(task.sourceUrl) === source;
+      return (exact || looseTask || sourceTask) && isTaskRequested(task);
+    });
+
+    const remote = remoteRequests.some(req => {
+      const exact = String(req.signature || '') === signature;
+      const looseReq = taskLooseSignatureFromParts(req.type, req.artistName, req.itemTitle) === loose;
+      const sourceReq = source && normalizeSourceUrl(req.sourceUrl) === source;
+      return exact || looseReq || sourceReq;
+    });
+
+    return local || remote;
+  }
+
+  function refreshQuickRequestButtonsInGrid() {
+    const grid = qs('artistGrid');
+    if (!grid) return;
+    grid.querySelectorAll('[data-quick-request]').forEach(btn => {
+      const type = btn.getAttribute('data-type') || 'manual';
+      const artist = btn.getAttribute('data-artist') || '';
+      const title = btn.getAttribute('data-title') || '';
+      const milestone = Number(btn.getAttribute('data-milestone') || 0);
+      const source = btn.getAttribute('data-source') || '';
+      const requested = hasRequestedSignature(type, artist, title, milestone, source);
+      btn.disabled = requested;
+      btn.textContent = requested ? 'Pedido enviado' : 'Pedir arte';
+      btn.classList.toggle('requested', requested);
+      btn.classList.toggle('dark', !requested);
+    });
+
+    grid.querySelectorAll('[data-quick-traffic]').forEach(btn => {
+      const artist = btn.getAttribute('data-artist') || '';
+      const title = btn.getAttribute('data-title') || '';
+      const currentViews = Number(btn.getAttribute('data-current') || 0);
+      const source = btn.getAttribute('data-source') || '';
+      const requested = hasRequestedSignature('traffic', artist, title, currentViews, source);
+      const submitting = Boolean(source && trafficSubmittingBySource.has(normalizeSourceUrl(source)));
+      btn.disabled = submitting;
+      btn.textContent = requested ? 'Tráfego solicitado' : (submitting ? 'Enviando...' : 'Rodar tráfego');
+      btn.classList.toggle('requested', requested);
+      btn.classList.toggle('orange', !requested);
+    });
+  }
+
+  function getLastFullRefresh() {
+    return Number(localStorage.getItem(LAST_FULL_REFRESH_KEY) || 0);
+  }
+
+  function setLastFullRefresh(ts) {
+    localStorage.setItem(LAST_FULL_REFRESH_KEY, String(ts));
+  }
+
+  function getFullRefreshRemainingMs() {
+    const elapsed = Date.now() - getLastFullRefresh();
+    return Math.max(0, FULL_REFRESH_INTERVAL_MS - elapsed);
+  }
+
+  function formatMmSs(ms) {
+    const totalSec = Math.ceil(ms / 1000);
+    const mm = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const ss = String(totalSec % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+
+  function formatRemainingLong(ms) {
+    const totalMinutes = Math.ceil(ms / 60000);
+    const days = Math.floor(totalMinutes / (24 * 60));
+    const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+    const mins = totalMinutes % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${formatMmSs(ms)}`;
+  }
+
+  function updateRefreshButtonState() {
+    const remaining = getFullRefreshRemainingMs();
+    if (remaining > 0) {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = `Geral em ${formatRemainingLong(remaining)}`;
+    } else {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Atualizar geral (semanal)';
+    }
+  }
+
+  function confirmFullRefresh() {
+    const remaining = getFullRefreshRemainingMs();
+    if (remaining > 0) {
+      const nextDate = new Date(getLastFullRefresh() + FULL_REFRESH_INTERVAL_MS).toLocaleString('pt-BR');
+      alert(`Atualização geral bloqueada até ${nextDate}.`);
+      return false;
+    }
+
+    const confirmed = window.confirm('Atualização geral vai consumir créditos da API para TODOS os artistas. Deseja continuar?');
+    if (!confirmed) return false;
+
+    const typed = window.prompt('Digite ATUALIZAR GERAL para confirmar.');
+    return typed === 'ATUALIZAR GERAL';
+  }
+
+  function extractSpotifyId(v = '') {
+    const s = String(v).trim();
+    for (const p of [
+      /open\.spotify\.com\/(?:intl-[^/]+\/)?artist\/([A-Za-z0-9]{22})/i,
+      /spotify:artist:([A-Za-z0-9]{22})/i,
+      /^([A-Za-z0-9]{22})$/,
+    ]) { const m = s.match(p); if (m) return m[1]; }
+    return null;
+  }
+
+  function isYouTubeChannel(v = '') {
+    return /youtube\.com\/(channel\/|c\/|user\/|@)/i.test(String(v).trim());
+  }
+
+  function normalizeArtistEntry(item = {}) {
+    const artistName = String(item?.artistName || item?.name || '').trim();
+    const spotifyUrl = String(item?.spotifyUrl || '').trim();
+    const youtubeUrl = String(item?.youtubeUrl || '').trim();
+    const spotifyArtistId = extractSpotifyId(spotifyUrl) || String(item?.spotifyArtistId || '').trim() || undefined;
+
+    if (!artistName || !spotifyArtistId) return null;
+
+    return {
+      artistName,
+      spotifyUrl,
+      youtubeUrl,
+      spotifyArtistId,
+    };
+  }
+
+  function sanitizeArtists(list) {
+    const bySpotifyId = new Map();
+    (Array.isArray(list) ? list : []).forEach(item => {
+      const normalized = normalizeArtistEntry(item);
+      if (!normalized) return;
+      bySpotifyId.set(normalized.spotifyArtistId, normalized);
+    });
+    return [...bySpotifyId.values()];
+  }
+
+  function getArtists() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return sanitizeArtists(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchCloudArtists() {
+    const data = await fetchBackendJson('/api/artists');
+    return sanitizeArtists(data.artists);
+  }
+
+  async function pushCloudArtists(artists) {
+    const data = await fetchBackendJson('/api/artists', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artists: sanitizeArtists(artists) }),
+    });
+    return sanitizeArtists(data.artists);
+  }
+
+  function queueCloudSync(artists) {
+    const cleaned = sanitizeArtists(artists);
+    artistsCloudSyncQueue = artistsCloudSyncQueue
+      .catch(() => null)
+      .then(async () => {
+        try {
+          await pushCloudArtists(cleaned);
+        } catch {
+          // Sem bloquear a UI quando o backend estiver temporariamente indisponível.
+        }
+      });
+    return artistsCloudSyncQueue;
+  }
+
+  async function bootstrapArtistsFromCloud() {
+    const localArtists = getArtists();
+    try {
+      const cloudArtists = await fetchCloudArtists();
+      if (cloudArtists.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudArtists));
+        localStorage.setItem(CLOUD_SYNC_BOOTSTRAP_KEY, '1');
+        return cloudArtists;
+      }
+
+      if (localArtists.length) {
+        await pushCloudArtists(localArtists);
+        localStorage.setItem(CLOUD_SYNC_BOOTSTRAP_KEY, '1');
+      }
+      return localArtists;
+    } catch {
+      // Se não conseguir sincronizar agora, segue com o cache local e tenta de novo depois.
+      return localArtists;
+    }
+  }
+
+  function artistsFingerprint(artists) {
+    const normalized = (artists || []).map(a => ({
+      artistName: String(a?.artistName || '').trim().toLowerCase(),
+      spotifyUrl: String(a?.spotifyUrl || '').trim(),
+      youtubeUrl: String(a?.youtubeUrl || '').trim(),
+      spotifyArtistId: String(a?.spotifyArtistId || '').trim(),
+      cmArtistId: Number(a?.cmArtistId || 0) || undefined,
+    }));
+    return JSON.stringify(normalized);
+  }
+
+  function loadCachedDashboard() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DASHBOARD_CACHE_KEY) || 'null');
+      return raw && typeof raw === 'object' ? raw : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveCachedDashboard(artists, payload) {
+    const record = {
+      savedAt: Date.now(),
+      artistsFingerprint: artistsFingerprint(artists),
+      payload,
+    };
+    localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(record));
+  }
+
+  function loadMatchingCachedDashboard(artists) {
+    const cached = loadCachedDashboard();
+    if (!cached?.payload || !cached?.savedAt || !cached?.artistsFingerprint) return null;
+    if (!Array.isArray(cached.payload.artists)) return null;
+
+    const map = new Map();
+    cached.payload.artists.forEach(item => {
+      const id = String(item?.spotifyArtistId || '').trim();
+      if (id) map.set(id, item);
+    });
+
+    const present = [];
+    const missing = [];
+    (artists || []).forEach(a => {
+      const id = extractSpotifyId(a.spotifyUrl) || String(a.spotifyArtistId || '').trim();
+      if (!id) {
+        missing.push(a);
+        return;
+      }
+      if (map.has(id)) present.push(map.get(id));
+      else missing.push(a);
+    });
+
+    return { cached, present, missing };
+  }
+
+  function computePriorityLocal(artist) {
+    let score = 0;
+    score += Number(artist?.spotify?.monthlyListeners?.value || 0) / 100000;
+    score += Number(artist?.spotify?.popularity || 0) / 100;
+    score += Number(artist?.youtube?.channelViews || 0) / 10000000;
+    score += Number(artist?.spotify?.followers || 0) / 200000;
+    score += Number(artist?.spotify?.singles?.[0]?.plays || 0) / 1000000;
+    score += Number(artist?.spotify?.topTracks?.[0]?.popularity || 0) / 100;
+    score += Number(artist?.youtube?.latestVideos?.[0]?.views || 0) / 1000000;
+    return score;
+  }
+
+  function buildDerivedData(artists) {
+    const validArtists = (artists || []).filter(a => a && !a.error);
+    const ranking = validArtists
+      .map(item => ({
+        artistName: item.artistName,
+        imageUrl: item.imageUrl,
+        monthlyListeners: item.spotify?.monthlyListeners?.value || 0,
+        spotifyPopularity: item.spotify?.popularity || 0,
+        youtubeViews: item.youtube?.channelViews || 0,
+        priorityScore: computePriorityLocal(item),
+      }))
+      .sort((a, b) => b.priorityScore - a.priorityScore)
+      .slice(0, 10);
+
+    const trafficAlerts = [];
+    validArtists.forEach(artist => {
+      (artist.youtube?.latestVideos || []).forEach(video => {
+        if (video?.needsTraffic) {
+          trafficAlerts.push({
+            artistName: artist.artistName,
+            artistImage: artist.imageUrl,
+            videoTitle: video.title,
+            videoUrl: video.youtubeUrl,
+            thumbnail: video.thumbnail,
+            views: video.views,
+            daysOld: video.daysOld,
+            publishedAt: video.publishedAt,
+          });
+        }
+      });
+    });
+
+    return { ranking, trafficAlerts };
+  }
+
+  function mergeLiveWithCachedArtists(livePayload, cachedPayload) {
+    if (!livePayload || !Array.isArray(livePayload.artists) || !cachedPayload || !Array.isArray(cachedPayload.artists)) {
+      return livePayload;
+    }
+
+    const bySpotifyId = new Map();
+    cachedPayload.artists.forEach(item => {
+      const id = String(item?.spotifyArtistId || '').trim();
+      if (id) bySpotifyId.set(id, item);
+    });
+
+    const artists = livePayload.artists.map(item => {
+      if (!item?.error) return item;
+      const id = String(item?.spotifyArtistId || '').trim();
+      const cachedItem = bySpotifyId.get(id);
+      return cachedItem || item;
+    });
+
+    return {
+      ...livePayload,
+      artists,
+    };
+  }
+
+  function renderDashboardPayload(data) {
+    qs('artistGrid').innerHTML = (data.artists || []).map(artistCard).join('');
+    refreshQuickRequestButtonsInGrid();
+    renderArtForecast();
+    renderTrafficAlerts(data.trafficAlerts || []);
+    updateArtTasksFromArtists(data.artists || []);
+  }
+
+  function saveArtists(data, options = {}) {
+    const cleaned = sanitizeArtists(data);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+    renderSavedArtists();
+
+    if (options.sync !== false) {
+      queueCloudSync(cleaned);
+    }
+
+    return cleaned;
+  }
+
+  function exportArtists() {
+    const artists = getArtists();
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      artists,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = `gaveta-artists-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importArtists(file) {
+    const text = await file.text();
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      throw new Error('Arquivo JSON inválido.');
+    }
+
+    const incoming = Array.isArray(parsed) ? parsed : parsed?.artists;
+    if (!Array.isArray(incoming)) throw new Error('Formato inválido: lista de artistas não encontrada.');
+
+    const normalized = incoming.map(item => ({
+      artistName: String(item?.artistName || item?.name || '').trim(),
+      spotifyUrl: String(item?.spotifyUrl || '').trim(),
+      youtubeUrl: String(item?.youtubeUrl || '').trim(),
+      spotifyArtistId: String(item?.spotifyArtistId || '').trim() || undefined,
+    })).filter(item => item.artistName && extractSpotifyId(item.spotifyUrl));
+
+    if (!normalized.length) throw new Error('Nenhum artista válido foi encontrado no arquivo.');
+
+    const dedupe = new Map();
+    normalized.forEach(item => dedupe.set(item.artistName.toLowerCase(), item));
+    const finalList = [...dedupe.values()];
+
+    saveArtists(finalList);
+    await loadDashboard();
+  }
+
+  function mergeArtistIdsFromResponse(responseArtists) {
+    if (!Array.isArray(responseArtists) || !responseArtists.length) return;
+
+    const current = getArtists();
+    if (!current.length) return;
+
+    let changed = false;
+    const bySpotifyId = new Map();
+    responseArtists.forEach(item => {
+      const spId = String(item?.spotifyArtistId || '').trim();
+      if (spId) bySpotifyId.set(spId, item);
+    });
+
+    const merged = current.map(entry => {
+      const localSpotifyId = extractSpotifyId(entry.spotifyUrl) || String(entry.spotifyArtistId || '').trim();
+      const hit = bySpotifyId.get(localSpotifyId);
+      if (!hit) return entry;
+
+      const nextSpotifyArtistId = String(hit.spotifyArtistId || localSpotifyId || '').trim() || undefined;
+
+      if (entry.spotifyArtistId !== nextSpotifyArtistId) {
+        changed = true;
+        return {
+          ...entry,
+          spotifyArtistId: nextSpotifyArtistId,
+        };
+      }
+
+      return entry;
+    });
+
+    if (changed) saveArtists(merged, { sync: false });
+  }
+
+  const fmtN = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
+  function compact(v) {
+    const n = Number(v);
+    if (v === null || v === undefined || v === '' || Number.isNaN(n)) return '--';
+    return fmtN.format(n);
+  }
+
+  function computeDemandStatus(value, step) {
+    const n = Number(value || 0);
+    if (!step || n <= 0) return { status: 'idle', currentTarget: 0, ratio: 0, gap: 0 };
+
+    const currentTarget = Math.ceil((n + 1) / step) * step;
+    const ratio = currentTarget > 0 ? n / currentTarget : 0;
+    const gap = currentTarget - n;
+
+    if (ratio >= 0.9) return { status: 'do', currentTarget, ratio, gap };
+    if (ratio >= 0.75) return { status: 'queue', currentTarget, ratio, gap };
+    return { status: 'idle', currentTarget, ratio, gap };
+  }
+  function delta(val) {
+    const n = Number(val);
+    if (val === null || val === undefined || val === '' || Number.isNaN(n)) return '';
+    if (n > 0) return `<span class="delta up">▲${n.toFixed(1)}%</span>`;
+    if (n < 0) return `<span class="delta dn">▼${Math.abs(n).toFixed(1)}%</span>`;
+    return '<span class="delta neu">→0%</span>';
+  }
+  function fmtDate(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR');
+  }
+
+  function loadArtTasks() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(ART_TASKS_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function isTaskRequested(task) {
+    if (task.requested) return true;
+    const signature = String(task.signature || taskSignature(task));
+    return remoteRequests.some(req => String(req.signature || '') === signature);
+  }
+
+  async function refreshRemoteRequests() {
+    try {
+      const data = await fetchGavetaRequests();
+      remoteRequests = Array.isArray(data.requests) ? data.requests : [];
+      const remoteSignatures = new Set(remoteRequests.map(req => String(req.signature || '').trim()).filter(Boolean));
+
+      artTasks.forEach(task => {
+        const sig = String(task.signature || taskSignature(task));
+        const existsRemote = remoteSignatures.has(sig);
+        if (!existsRemote && task.status !== 'done') {
+          task.requested = false;
+          if (task.status === 'progress') task.status = 'pending';
+        }
+      });
+
+      remoteRequests.forEach(req => {
+        const signature = String(req.signature || '').trim();
+        if (!signature) return;
+        let task = artTasks.find(t => String(t.signature || '') === signature);
+        if (!task) {
+          ensureAutoTask({
+            type: req.type || 'manual',
+            artistName: req.artistName || 'Artista',
+            itemTitle: req.itemTitle || 'Solicitação',
+            currentValue: Number(req.currentValue || 0),
+            milestone: Number(req.milestone || 0),
+            metricLabel: req.metricLabel || 'Solicitação do cliente',
+            coverUrl: req.coverUrl || '',
+            sourceUrl: req.sourceUrl || '',
+            demandStatus: 'queue',
+          });
+          task = artTasks.find(t => String(t.signature || '') === signature);
+        }
+        if (!task) return;
+        task.requested = true;
+        if (task.status === 'pending') task.status = 'progress';
+      });
+
+      saveArtTasks();
+    } catch {
+      // Fluxo local continua mesmo sem sincronização remota.
+    }
+  }
+
+  async function requestTaskFromTask(task) {
+    if (!task) return;
+    const payload = {
+      ...task,
+      requested: true,
+      requestDetails: {
+        type: task.type || 'manual',
+        artistName: task.artistName || '',
+        itemTitle: task.itemTitle || '',
+        metricLabel: task.metricLabel || '',
+        currentValue: Number(task.currentValue || 0),
+        milestone: Number(task.milestone || 0),
+        sourceUrl: task.sourceUrl || '',
+        coverUrl: task.coverUrl || '',
+        note: task.note || '',
+      },
+      dueDate: new Date().toISOString().slice(0, 10),
+      calendarId: GAVETA_CALENDAR_ID,
+    };
+
+    const data = await createGavetaRequest(payload);
+    if (!data?.request?.calendarEventId) {
+      throw new Error('Agenda nao confirmou o evento. Tente novamente.');
+    }
+    task.requested = true;
+    if (task.status === 'pending') task.status = 'progress';
+    if (data?.request?.calendarEventId) task.calendarEventId = data.request.calendarEventId;
+    return data;
+  }
+
+  async function requestTrafficFromDraft(draft) {
+    if (!draft) throw new Error('Video não selecionado para tráfego.');
+    const budget = Number(draft.budget || 0);
+    const viewsTarget = Number(draft.viewsTarget || 0);
+    if (!budget || !viewsTarget) {
+      throw new Error('Preencha investimento e meta de visualizações.');
+    }
+
+    const taskPayload = {
+      id: `traffic-${Date.now()}`,
+      type: 'traffic',
+      artistName: draft.artistName || 'Artista',
+      itemTitle: draft.videoTitle || 'Video',
+      metricLabel: 'Visualizações de tráfego',
+      currentValue: Number(draft.currentViews || 0),
+      milestone: viewsTarget,
+      sourceUrl: draft.sourceUrl || '',
+      coverUrl: draft.coverUrl || '',
+      demandStatus: 'do',
+      trafficBudget: budget,
+      trafficViewsTarget: viewsTarget,
+      note: `Valor para boleto: ${formatBrCurrency(budget)} | Meta de visualizações: ${formatViews(viewsTarget)}`,
+    };
+
+    ensureAutoTask(taskPayload);
+    const task = artTasks.find(t => String(t.signature || '') === taskSignature(taskPayload)) || taskPayload;
+    const data = await createGavetaRequest(task);
+    if (!data?.request?.calendarEventId) {
+      throw new Error('Agenda nao confirmou o evento de tráfego.');
+    }
+
+    if (task && task !== taskPayload) {
+      task.requested = true;
+      if (task.status === 'pending') task.status = 'progress';
+      task.calendarEventId = data.request.calendarEventId;
+    }
+
+    return data;
+  }
+
+  function saveArtTasks() {
+    localStorage.setItem(ART_TASKS_KEY, JSON.stringify(artTasks));
+    renderArtIndicators();
+    refreshQuickRequestButtonsInGrid();
+    renderArtForecast();
+    renderArtTasks();
+    renderGavetaRequests();
+    renderUploadReport();
+  }
+
+  function monthlyStep(value) {
+    const n = Number(value || 0);
+    if (n < 50000) return 5000;
+    if (n < 500000) return 50000;
+    return 100000;
+  }
+
+  function reachedMilestone(value, step) {
+    const n = Number(value || 0);
+    if (!step || n < step) return null;
+    return Math.floor(n / step) * step;
+  }
+
+  function taskSignature(task) {
+    return [task.type, task.artistName, task.itemTitle || '', task.milestone || 0].join('|').toLowerCase();
+  }
+
+  function ensureAutoTask(task) {
+    const sig = taskSignature(task);
+    const existing = artTasks.find(t => t.signature === sig);
+    if (existing) {
+      existing.currentValue = Math.max(Number(existing.currentValue || 0), Number(task.currentValue || 0));
+      existing.milestone = Math.max(Number(existing.milestone || 0), Number(task.milestone || 0));
+      if (!existing.metricLabel && task.metricLabel) existing.metricLabel = task.metricLabel;
+      if (!existing.coverUrl && task.coverUrl) existing.coverUrl = task.coverUrl;
+      if (!existing.sourceUrl && task.sourceUrl) existing.sourceUrl = task.sourceUrl;
+      if (!existing.demandStatus && task.demandStatus) existing.demandStatus = task.demandStatus;
+      if (task.demandStatus === 'do') existing.demandStatus = 'do';
+      return;
+    }
+
+    artTasks.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      signature: sig,
+      status: 'pending',
+      requested: false,
+      note: '',
+      assets: [],
+      driveUrl: '',
+      coverUrl: '',
+      sourceUrl: '',
+      demandStatus: 'queue',
+      createdAt: new Date().toISOString(),
+      ...task,
+    });
+  }
+
+  function updateArtTasksFromArtists(artists) {
+    const validArtists = (artists || []).filter(a => a && !a.error);
+    validArtists.forEach((artist, index) => {
+      const artistName = artist.artistName || 'Artista';
+      const ml = Number(artist?.spotify?.monthlyListeners?.value || 0);
+      const mlStep = monthlyStep(ml);
+      const mlDemand = computeDemandStatus(ml, mlStep);
+      if (mlDemand.status !== 'idle') {
+        ensureAutoTask({
+          type: 'monthly',
+          artistName,
+          itemTitle: 'Ouvintes mensais',
+          currentValue: ml,
+          milestone: mlDemand.currentTarget,
+          metricLabel: 'Spotify mensal',
+          coverUrl: artist.imageUrl || artist?.youtube?.channelThumbnail || '',
+          sourceUrl: artist.spotifyArtistUrl || '',
+          demandStatus: mlDemand.status,
+        });
+      }
+
+      (artist?.spotify?.singles || []).forEach(single => {
+        const plays = Number(single?.plays || 0);
+        const demand = computeDemandStatus(plays, 50000);
+        if (demand.status !== 'idle') {
+          ensureAutoTask({
+            type: 'single',
+            artistName,
+            itemTitle: single?.title || 'Single',
+            currentValue: plays,
+            milestone: demand.currentTarget,
+            metricLabel: 'Plays do single',
+            coverUrl: single?.coverUrl || artist.imageUrl || '',
+            sourceUrl: single?.spotifyUrl || artist.spotifyArtistUrl || '',
+            demandStatus: demand.status,
+          });
+        }
+      });
+
+      (artist?.youtube?.latestVideos || []).forEach(video => {
+        const views = Number(video?.views || 0);
+        const demand = computeDemandStatus(views, 50000);
+        if (demand.status !== 'idle') {
+          ensureAutoTask({
+            type: 'youtube',
+            artistName,
+            itemTitle: video?.title || 'Video YouTube',
+            currentValue: views,
+            milestone: demand.currentTarget,
+            metricLabel: 'Views do video',
+            coverUrl: video?.thumbnail || artist.imageUrl || '',
+            sourceUrl: video?.youtubeUrl || '',
+            demandStatus: demand.status,
+          });
+        }
+      });
+    });
+    saveArtTasks();
+  }
+
+  function statusLabel(status) {
+    if (status === 'pending') return 'Pendente';
+    if (status === 'progress') return 'Em andamento';
+    if (status === 'ready') return 'Pronta';
+    return 'Arte disponivel';
+  }
+
+  function nextStatus(status) {
+    if (status === 'pending') return 'progress';
+    if (status === 'progress') return 'ready';
+    if (status === 'ready') return 'done';
+    return 'pending';
+  }
+
+  function renderArtIndicators() {
+    const pending = artTasks.filter(t => t.status === 'pending' || t.status === 'progress').length;
+    artPendingCount.textContent = String(pending);
+  }
+
+  function renderUploadReport() {
+    if (!uploadReport) return;
+    const uploadedTasks = artTasks.filter(t => Array.isArray(t.assets) && t.assets.length > 0).length;
+    const uploadedFiles = artTasks.reduce((acc, t) => acc + (Array.isArray(t.assets) ? t.assets.length : 0), 0);
+    uploadReport.textContent = `Relatório de uploads: ${uploadedTasks} artes · ${uploadedFiles} arquivos`;
+  }
+
+  function getUploadState(taskId) {
+    return uploadStates.get(taskId) || null;
+  }
+
+  function renderUploadState(taskId) {
+    const box = qs(`upload-state-${taskId}`);
+    if (!box) return;
+
+    const state = getUploadState(taskId);
+    const message = box.querySelector('[data-upload-message]');
+    const percent = box.querySelector('[data-upload-percent]');
+    const fill = box.querySelector('[data-upload-fill]');
+
+    if (!state) {
+      box.classList.add('hidden');
+      box.classList.remove('uploading', 'done', 'error');
+      if (message) message.textContent = 'Pronto para enviar.';
+      if (percent) percent.textContent = '0%';
+      if (fill) fill.style.width = '0%';
+      return;
+    }
+
+    box.classList.remove('hidden', 'uploading', 'done', 'error');
+    box.classList.add(state.phase || 'uploading');
+    if (message) message.textContent = state.message || 'Enviando arquivo...';
+    if (percent) percent.textContent = `${Math.round(Number(state.progress || 0))}%`;
+    if (fill) fill.style.width = `${Math.max(0, Math.min(100, Number(state.progress || 0)))}%`;
+  }
+
+  function setUploadState(taskId, state) {
+    if (!taskId) return;
+    uploadStates.set(taskId, { ...state });
+    renderUploadState(taskId);
+  }
+
+  function clearUploadState(taskId) {
+    if (!taskId) return;
+    uploadStates.delete(taskId);
+    renderUploadState(taskId);
+  }
+
+  function requestGroupsByArtist() {
+    const grouped = new Map();
+    artTasks.forEach(task => {
+      const statusRelevant = task.status === 'pending' || task.status === 'progress' || task.status === 'ready';
+      if (!statusRelevant) return;
+      const key = String(task.artistName || 'Artista').trim() || 'Artista';
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(task);
+    });
+    return [...grouped.entries()]
+      .map(([artistName, tasks]) => ({ artistName, tasks }))
+      .sort((a, b) => b.tasks.length - a.tasks.length);
+  }
+
+  function renderGavetaRequests() {
+    if (!gavetaRequestsList || !gavetaRequestCount) return;
+
+    const groups = requestGroupsByArtist();
+    gavetaRequestCount.textContent = String(groups.length);
+
+    if (!groups.length) {
+      gavetaRequestsList.innerHTML = '<div class="empty">Nenhuma solicitação aberta.</div>';
+      return;
+    }
+
+    gavetaRequestsList.innerHTML = groups.map(group => {
+      const readyAssets = group.tasks.flatMap(task => Array.isArray(task.assets) ? task.assets : []);
+      const readyCount = group.tasks.filter(t => t.status === 'ready').length;
+      const pendingCount = group.tasks.filter(t => t.status === 'pending' || t.status === 'progress').length;
+
+      return `
+        <div class="gaveta-item">
+          <h4>${esc(group.artistName)}</h4>
+          <div class="gaveta-meta">${pendingCount} solicitadas/em produção · ${readyCount} prontas · ${readyAssets.length} arquivos</div>
+          <div class="gaveta-links">
+            <button class="btn dark sm" data-open-artist="${esc(group.artistName)}">Ver tarefas</button>
+            <button class="btn dark sm" data-download-artist="${esc(group.artistName)}" ${readyAssets.length ? '' : 'disabled'}>Baixar tudo disponível</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    gavetaRequestsList.querySelectorAll('[data-open-artist]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        artArtistFilter = btn.getAttribute('data-open-artist') || '';
+        artActiveTab = 'pending';
+        renderArtTasks();
+      });
+    });
+
+    gavetaRequestsList.querySelectorAll('[data-download-artist]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const artistName = btn.getAttribute('data-download-artist');
+        if (!artistName) return;
+        downloadArtistAssets(artistName);
+      });
+    });
+  }
+
+  function downloadArtistAssets(artistName) {
+    const assets = artTasks
+      .filter(task => String(task.artistName || '').trim() === artistName && (task.status === 'ready' || task.status === 'done'))
+      .flatMap(task => Array.isArray(task.assets) ? task.assets : [])
+      .filter(asset => asset && (asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl));
+
+    if (!assets.length) {
+      alert('Nenhum arquivo pronto para download neste artista.');
+      return;
+    }
+
+    assets.forEach((asset, i) => {
+      const a = document.createElement('a');
+      a.href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl;
+      a.download = asset.name || `${artistName.replace(/\s+/g, '-').toLowerCase()}-${i + 1}`;
+      a.rel = 'noopener';
+      if (!asset.dataUrl) a.target = '_blank';
+      a.click();
+    });
+  }
+
+  function artTemperature(task) {
+    if (task.demandStatus === 'do') return { dotClass: 'priority-do', score: 120 };
+    if (task.demandStatus === 'queue') return { dotClass: 'priority-queue', score: 80 };
+    return { dotClass: 'priority-idle', score: 20 };
+  }
+
+  function renderArtForecast() {
+    if (!artForecastList) return;
+    const items = artTasks
+      .filter(t => t.status !== 'done')
+      .map(t => ({ ...t, temp: artTemperature(t) }))
+      .sort((a, b) => b.temp.score - a.temp.score)
+      ;
+
+    if (!items.length) {
+      artForecastList.innerHTML = '<div class="empty">Sem artes pendentes no momento.</div>';
+      return;
+    }
+
+    artForecastList.innerHTML = items.map((task, i) => `
+      <button class="rank-item" data-open-art="${esc(task.id)}" style="width:100%;text-align:left;background:transparent">
+        <div class="rank-pos">${i + 1}</div>
+        <img src="${esc(task.coverUrl || '')}" alt="${esc(task.itemTitle || 'Capa')}" loading="lazy">
+        <div class="rank-meta">
+          <h4>${esc(task.artistName)} · ${esc(task.itemTitle)}</h4>
+          <p>${esc(task.metricLabel)} · Meta ${compact(task.milestone)} · Atual ${compact(task.currentValue)}</p>
+        </div>
+        <span class="priority-dot ${esc(task.temp.dotClass)}" title="Prioridade"></span>
+      </button>
+    `).join('');
+
+    artForecastList.querySelectorAll('[data-open-art]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        artArtistFilter = '';
+        artActiveTab = 'pending';
+        openDrawer(artDrawer);
+        renderArtTasks();
+          renderGavetaRequests();
+      });
+    });
+  }
+
+  function renderArtTasks() {
+    if (!artTaskFocusId) {
+      artTasksList.innerHTML = '<div class="empty">Clique em Pedir arte no single ou video para abrir o pedido deste item.</div>';
+      return;
+    }
+
+    const filtered = artTasks.filter(t => t.id === artTaskFocusId);
+    if (!filtered.length) {
+      artTasksList.innerHTML = '<div class="empty">Item selecionado nao encontrado.</div>';
+      return;
+    }
+
+    function renderTaskCard(task) {
+      const requested = isTaskRequested(task);
+      return `
+      <div class="art-task">
+        <div class="art-task-head">
+          <div class="art-task-main">
+            <img class="task-cover" src="${esc(task.coverUrl || '')}" alt="${esc(task.itemTitle || 'Capa')}" loading="lazy">
+            <div>
+              <div class="art-task-title">${esc(task.artistName)} · ${esc(task.itemTitle)}</div>
+              <div class="art-task-meta">${esc(task.metricLabel)} · meta ${compact(task.milestone)} · atual ${compact(task.currentValue)}</div>
+              ${task.sourceUrl ? `<div class="art-task-meta"><a href="${esc(task.sourceUrl)}" target="_blank" rel="noopener">Abrir origem</a></div>` : ''}
+            </div>
+          </div>
+          <span class="status-pill status-${esc(task.status)}">${statusLabel(task.status)}</span>
+        </div>
+        <div class="art-row">
+          <button class="btn dark sm" data-request="${esc(task.id)}" disabled>Item selecionado</button>
+          <label class="btn dark sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            Anexar capa (opcional)
+            <input type="file" accept="image/*" data-upload-cover="${esc(task.id)}" style="display:none">
+          </label>
+          <button class="btn dark sm" data-send-cover="${esc(task.id)}">Enviar capa</button>
+          ${(task.assets || []).map((asset, i) => {
+            const href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl || '';
+            if (!href) return '';
+            const label = asset.driveUrl || asset.webViewLink ? `Drive ${i + 1}` : `Baixar ${i + 1}`;
+            return `<a class="btn dark sm" href="${esc(href)}" target="_blank" rel="noopener" download="${esc(asset.name || `arte-${i + 1}`)}">${label}</a>`;
+          }).join('')}
+        </div>
+        <div class="upload-status hidden" id="upload-state-${esc(task.id)}">
+          <div class="upload-status-head">
+            <span data-upload-message>Pronto para enviar.</span>
+            <span data-upload-percent>0%</span>
+          </div>
+          <div class="upload-progress"><div class="upload-progress-fill" data-upload-fill style="width:0%"></div></div>
+        </div>
+        <div class="art-task-meta">Status do pedido: ${requested ? 'pedido enviado para agenda' : 'aguardando envio'}</div>
+        <div class="art-task-meta">Use o botao Pedir arte no painel para solicitar em 1 clique.</div>
+        ${task.driveUrl ? `<div class="art-row"><a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a><button class="btn dark sm" data-copy-drive="${esc(task.id)}">Copiar link</button></div>` : ''}
+      </div>
+    `;
+    }
+
+    artTasksList.innerHTML = `<section class="task-group"><div class="task-group-title requested">Pedido selecionado</div>${filtered.map(renderTaskCard).join('')}</section>`;
+
+    artTasksList.querySelectorAll('[data-request]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-request');
+        const task = artTasks.find(t => t.id === id);
+        if (!task) return;
+        artTaskFocusId = task.id;
+        artActiveTab = task.status || 'pending';
+        renderArtTasks();
+      });
+    });
+
+    artTasksList.querySelectorAll('[data-send-cover]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-send-cover');
+        const task = artTasks.find(t => t.id === id);
+        if (!task) return;
+
+        const fileInput = artTasksList.querySelector(`[data-upload-cover="${id}"]`);
+        const pickedFile = fileInput?.files?.[0] || null;
+        if (!pickedFile) {
+          alert('Anexe a capa antes de enviar.');
+          return;
+        }
+
+        const renamed = new File([pickedFile], normalizeSlotFileName(task, pickedFile, 'cover'), { type: pickedFile.type || 'application/octet-stream' });
+
+        try {
+          if (!isTaskRequested(task)) {
+            await requestTaskFromTask(task);
+          }
+
+          setUploadState(task.id, {
+            phase: 'preparing',
+            progress: 0,
+            message: 'Preparando capa...',
+          });
+
+          const uploaded = await uploadGavetaAssets(task, [renamed], state => setUploadState(task.id, state));
+          const remoteAssets = Array.isArray(uploaded.uploaded) ? uploaded.uploaded : [];
+          task.assets = [...(Array.isArray(task.assets) ? task.assets : []), ...remoteAssets].slice(0, 12);
+          if (!task.driveUrl && remoteAssets[0]?.driveUrl) task.driveUrl = remoteAssets[0].driveUrl;
+          task.status = 'done';
+          task.requested = true;
+          artActiveTab = 'done';
+          artArtistFilter = '';
+          saveArtTasks();
+          setUploadState(task.id, {
+            phase: 'done',
+            progress: 100,
+            message: 'Capa enviada com sucesso.',
+          });
+          showToast('Capa enviada para o Drive. Link pronto para compartilhar.', 'success');
+          setTimeout(() => clearUploadState(task.id), 5000);
+          if (fileInput) fileInput.value = '';
+        } catch (err) {
+          setUploadState(task.id, {
+            phase: 'error',
+            progress: 0,
+            message: err.message || 'Nao foi possivel enviar a capa.',
+          });
+          alert((err.message || 'Nao foi possivel enviar a capa.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
+        }
+      });
+    });
+
+    artTasksList.querySelectorAll('[data-copy-drive]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-copy-drive');
+        const task = artTasks.find(t => t.id === id);
+        const link = String(task?.driveUrl || '').trim();
+        if (!link) return;
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast('Link do Drive copiado.', 'info');
+        } catch {
+          showToast('Nao foi possivel copiar automaticamente.', 'error');
+        }
+      });
+    });
+  }
+
+  function openDrawer(w) {
+    backdrop.classList.remove('hidden');
+    addDrawer.classList.add('hidden');
+    manageDrawer.classList.add('hidden');
+    artDrawer.classList.add('hidden');
+    trafficDrawer.classList.add('hidden');
+    w.classList.remove('hidden');
+  }
+
+  function closeDrawers() {
+    backdrop.classList.add('hidden');
+    addDrawer.classList.add('hidden');
+    manageDrawer.classList.add('hidden');
+    artDrawer.classList.add('hidden');
+    trafficDrawer.classList.add('hidden');
+    formError.classList.add('hidden');
+    formError.textContent = '';
+  }
+
+  function renderSavedArtists() {
+    const list = qs('savedArtistsList');
+    const items = getArtists();
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">Nenhum artista cadastrado ainda.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map((item, i) => `
+      <div class="saved-item">
+        <div>
+          <h4>${esc(item.artistName)}</h4>
+          <p>${esc(item.spotifyUrl)}</p>
+          <p>${esc(item.youtubeUrl || '--')}</p>
+        </div>
+        <button class="btn dark sm" data-rm="${i}">Excluir</button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-rm]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        saveArtists(getArtists().filter((_, i) => i !== Number(btn.dataset.rm)));
+        loadDashboard();
+      });
+    });
+  }
+
+  function renderTrafficAlerts(alerts) {
+    const section = qs('trafficSection');
+    const list = qs('trafficList');
+    const badge = qs('trafficCount');
+
+    if (!section || !list || !badge) return;
+
+    if (!alerts || !alerts.length) {
+      section.classList.add('hidden');
+      return;
+    }
+
+    section.classList.remove('hidden');
+    badge.textContent = String(alerts.length);
+    list.innerHTML = alerts.map(a => `
+      <a class="traffic-card" href="${esc(a.videoUrl || '#')}" target="_blank" rel="noopener">
+        <img class="traffic-thumb" src="${esc(a.thumbnail || '')}" alt="${esc(a.videoTitle || 'Video')}" loading="lazy">
+        <div class="traffic-info">
+          <div class="traffic-artist">${esc(a.artistName || 'Artista')}</div>
+          <div class="traffic-title">${esc(a.videoTitle || 'Video')}</div>
+          <div class="traffic-meta">${fmtDate(a.publishedAt)} · ${Number(a.daysOld) || 0}d atrás</div>
+        </div>
+        <div class="traffic-cta">
+          <span class="cta-label">Rodar tráfego</span>
+          <div class="cta-views">${compact(a.views)} views</div>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  function singleRow(s) {
+    const hasPlays = s.plays !== null && s.plays !== undefined;
+    const demand = computeDemandStatus(Number(s.plays || 0), 50000);
+    const milestone = Number(demand.currentTarget || 0);
+    const submitting = quickRequestSubmitting.has(quickRequestKey('single', s.artistName || '', s.title || 'Single', milestone));
+    const requested = hasRequestedSignature('single', s.artistName || '', s.title || 'Single', milestone, s.spotifyUrl || '');
+    return `
+      <div class="media-row">
+        <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
+          <img class="media-thumb" src="${esc(s.coverUrl || '')}" alt="${esc(s.title || 'Single')}" loading="lazy">
+        </a>
+        <div class="media-info">
+          <div class="media-title"><a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(s.title || 'Single')}</a></div>
+          <div class="media-date">${fmtDate(s.releaseDate) || 'sem data'}</div>
+          ${demand.status !== 'idle' ? `<span class="priority-dot ${esc(demand.status === 'do' ? 'priority-do' : 'priority-queue')}" title="${demand.status === 'do' ? 'Fazer arte' : 'Na fila'}"></span>` : ''}
+        </div>
+        <div class="media-stat">
+          ${hasPlays
+            ? `<div class="media-num">${compact(s.plays)}</div><div class="media-lbl">streams</div>`
+            : '<div class="no-data">--</div>'}
+          <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
+          <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}">Subir artes</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function videoRow(v) {
+    const demand = computeDemandStatus(Number(v.views || 0), 50000);
+    const milestone = Number(demand.currentTarget || 0);
+    const submitting = quickRequestSubmitting.has(quickRequestKey('youtube', v.artistName || '', v.title || 'Video', milestone));
+    const requested = hasRequestedSignature('youtube', v.artistName || '', v.title || 'Video', milestone, v.youtubeUrl || '');
+    const trafficRequested = hasRequestedSignature('traffic', v.artistName || '', v.title || 'Video', 0, v.youtubeUrl || '');
+    const trafficSubmitting = trafficSubmittingBySource.has(normalizeSourceUrl(v.youtubeUrl || ''));
+    return `
+      <div class="media-row">
+        <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
+          <img class="media-thumb yt-thumb" src="${esc(v.thumbnail || '')}" alt="${esc(v.title || 'Video')}" loading="lazy">
+        </a>
+        <div class="media-info">
+          <div class="media-title"><a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener">${esc(v.title || 'Video')}</a></div>
+          <div class="media-date">${fmtDate(v.publishedAt) || 'sem data'}${v.daysOld < 999 ? ` · ${v.daysOld}d` : ''}</div>
+          ${demand.status !== 'idle' ? `<span class="priority-dot ${esc(demand.status === 'do' ? 'priority-do' : 'priority-queue')}" title="${demand.status === 'do' ? 'Fazer arte' : 'Na fila'}"></span>` : ''}
+        </div>
+        <div class="media-stat">
+          <div class="media-num">${compact(v.views)}</div>
+          <div class="media-lbl">views</div>
+          <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
+          ${v.needsTraffic ? `<button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>` : ''}
+          <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function artistCard(a) {
+    if (a.error) {
+      return `
+        <article class="card artist-card">
+          <div class="error-card"><strong>${esc(a.artistName || 'Artista')}</strong><br>${esc(a.error)}</div>
+        </article>
+      `;
+    }
+
+    const sp = a.spotify || {};
+    const yt = a.youtube || {};
+    const ml = sp.monthlyListeners || null;
+    const popularity = sp.popularity || null;
+    const fl = sp.followers || null;
+    const singles = Array.isArray(sp.singles) ? sp.singles : [];
+    const topTracks = Array.isArray(sp.topTracks) ? sp.topTracks : [];
+    const vids = Array.isArray(yt.latestVideos) ? yt.latestVideos : [];
+    const trackDateByTitle = new Map(topTracks.map(t => [String(t?.title || '').trim().toLowerCase(), t?.releaseDate || '']));
+
+    return `
+      <article class="card artist-card">
+        <div class="artist-top">
+          <img class="artist-avatar" src="${esc(a.imageUrl || yt.channelThumbnail || '')}" alt="${esc(a.artistName || 'Artista')}" loading="lazy">
+          <div class="artist-info">
+            <div class="artist-name">
+              <a href="${esc(a.spotifyArtistUrl || '#')}" target="_blank" rel="noopener">${esc(a.artistName || 'Artista')}</a>
+            </div>
+            <div class="artist-ts">Atualizado ${new Date(a.fetchedAt).toLocaleString('pt-BR')}</div>
+          </div>
+        </div>
+        <div class="pill-row">
+          <div class="tag sp"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M6 9.5c3.8-1.1 8.2-.8 11.8 1" stroke="#0B0B10" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M6.8 12.4c3.1-.8 6.7-.6 9.6.8" stroke="#0B0B10" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M7.6 15c2.2-.5 4.7-.4 6.8.5" stroke="#0B0B10" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>Spotify</div>
+          <div class="tag yt"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4" fill="#ff0033"/><path d="M10 9.5 15.5 12 10 14.5z" fill="#fff"/></svg>YouTube</div>
+        </div>
+
+        <div class="platforms">
+          <div class="platform sp-block">
+            <div class="plat-head"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M6 9.5c3.8-1.1 8.2-.8 11.8 1" stroke="#0B0B10" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M6.8 12.4c3.1-.8 6.7-.6 9.6.8" stroke="#0B0B10" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M7.6 15c2.2-.5 4.7-.4 6.8.5" stroke="#0B0B10" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg> Spotify</div>
+            <div class="plat-metrics">
+              <div class="mc">
+                <div class="mc-k">Ouvintes mensais</div>
+                <div class="mc-v">${compact(ml?.value)}</div>
+                <div class="mc-s">${esc(ml?.source === 'gemini-web' ? 'Estimado via Gemini' : (ml?.source === 'spotify-page' ? 'Coletado da pagina Spotify' : (ml?.source || ''))) || '&nbsp;'}</div>
+              </div>
+              <div class="mc">
+                <div class="mc-k">Seguidores</div>
+                <div class="mc-v">${compact(fl)}</div>
+                <div class="mc-s">${popularity !== null ? `Popularidade ${popularity}/100` : 'Canal Spotify'}</div>
+              </div>
+            </div>
+            <div class="media-list">
+              ${(singles.length ? singles.map(single => {
+                const titleKey = String(single?.title || '').trim().toLowerCase();
+                const fallbackDate = trackDateByTitle.get(titleKey) || '';
+                return singleRow({ ...single, artistName: a.artistName, releaseDate: single.releaseDate || fallbackDate || '' });
+              }).join('') : '').trim() || (topTracks.length ? topTracks.map(t => {
+                const submitting = quickRequestSubmitting.has(quickRequestKey('single', a.artistName || '', t.title || 'Track', 50000));
+                const requested = hasRequestedSignature('single', a.artistName || '', t.title || 'Track', 50000, t.spotifyUrl || a.spotifyArtistUrl || '');
+                return `
+                <div class="media-row">
+                  <a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
+                    <img class="media-thumb" src="${esc(t.imageUrl || '')}" alt="${esc(t.title || 'Track')}" loading="lazy">
+                  </a>
+                  <div class="media-info">
+                    <div class="media-title"><a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(t.title || 'Track')}</a></div>
+                    <div class="media-date">${fmtDate(t.releaseDate) || 'sem data'}</div>
+                  </div>
+                  <div class="media-stat">
+                    <div class="media-num">${compact(t.plays ?? t.streams ?? null)}</div><div class="media-lbl">streams</div>
+                    <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(a.artistName || '')}" data-title="${esc(t.title || 'Track')}" data-type="single" data-metric="Streams do track" data-current="${Number(t.plays ?? t.streams ?? 0)}" data-milestone="50000" data-cover="${esc(t.imageUrl || a.imageUrl || '')}" data-source="${esc(t.spotifyUrl || a.spotifyArtistUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
+                    <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(a.artistName || '')}" data-title="${esc(t.title || 'Track')}" data-type="single" data-metric="Streams do track" data-current="${Number(t.plays ?? t.streams ?? 0)}" data-milestone="50000" data-cover="${esc(t.imageUrl || a.imageUrl || '')}" data-source="${esc(t.spotifyUrl || a.spotifyArtistUrl || '')}">Subir artes</button>
+                  </div>
+                </div>
+              `;
+              }).join('') : '<div class="empty">Sem singles/top tracks.</div>')}
+            </div>
+          </div>
+
+          <div class="platform yt-block">
+            <div class="plat-head"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="4" fill="#ff0033"/><path d="M10 9.5 15.5 12 10 14.5z" fill="#fff"/></svg> YouTube</div>
+            <div class="plat-metrics">
+              <div class="mc">
+                <div class="mc-k">Inscritos</div>
+                <div class="mc-v">${compact(yt.subscribers)}</div>
+                <div class="mc-s">${esc(yt.channelTitle || '--')}</div>
+              </div>
+              <div class="mc">
+                <div class="mc-k">Views canal</div>
+                <div class="mc-v">${compact(yt.channelViews)}</div>
+                <div class="mc-s">Total acumulado</div>
+              </div>
+            </div>
+            <div class="media-list">
+              ${vids.length ? vids.map(video => videoRow({ ...video, artistName: a.artistName })).join('') : '<div class="empty">Sem vídeos recentes.</div>'}
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  async function loadDashboard(options = {}) {
+    const forceRefresh = Boolean(options.forceRefresh);
+    const artistsToRefresh = Array.isArray(options.artistsToRefresh) ? options.artistsToRefresh : null;
+    let artists = getArtists();
+    qs('lastSync').textContent = artists.length ? (forceRefresh ? 'Atualizando...' : 'Carregando...') : 'Nenhum artista';
+    renderSavedArtists();
+
+    try {
+      artists = await bootstrapArtistsFromCloud();
+    } catch {
+      // Mantém a lista local se a nuvem estiver indisponível.
+    }
+
+    artists = getArtists();
+
+    if (!artists.length) {
+      qs('artistGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">Cadastre artistas para iniciar o monitoramento.</div>';
+      renderArtForecast();
+      const trafficSection = qs('trafficSection');
+      if (trafficSection) trafficSection.classList.add('hidden');
+      return;
+    }
+
+    const cacheState = loadMatchingCachedDashboard(artists);
+
+    if (forceRefresh) {
+      const remaining = getFullRefreshRemainingMs();
+      if (remaining > 0) {
+        qs('lastSync').textContent = `Atualização geral disponível em ${formatRemainingLong(remaining)}`;
+        updateRefreshButtonState();
+        return;
+      }
+    }
+
+    try {
+      let dashboardArtists = artists;
+      if (artistsToRefresh?.length) {
+        const partial = await fetchDashboardPayload(artistsToRefresh);
+        const current = getArtists();
+        const bySpotifyId = new Map((partial.artists || []).map(item => [String(item?.spotifyArtistId || '').trim(), item]));
+        dashboardArtists = current.map(item => {
+          const id = extractSpotifyId(item.spotifyUrl) || String(item.spotifyArtistId || '').trim();
+          return bySpotifyId.get(id) || item;
+        });
+      }
+
+      const liveData = await fetchDashboardPayload(dashboardArtists);
+      const data = liveData;
+
+      mergeArtistIdsFromResponse(data.artists || []);
+      renderDashboardPayload(data);
+      saveCachedDashboard(artists, data);
+      if (forceRefresh) setLastFullRefresh(Date.now());
+      updateRefreshButtonState();
+      const backendLabel = activeBackendUrl === BACKEND_LOCAL_URL ? 'local' : 'produção';
+      const skipped = Number(data.skippedArtists || 0);
+      qs('lastSync').textContent = `Sincronizado ${new Date(data.fetchedAt).toLocaleString('pt-BR')} (${backendLabel})`;
+      if (skipped > 0) {
+        qs('lastSync').textContent += ` · ${skipped} artista(s) pendente(s) nesta rodada`;
+      }
+    } catch (err) {
+      if (cacheState?.cached?.payload) {
+        renderDashboardPayload(cacheState.cached.payload);
+        const cacheDate = new Date(cacheState.cached.savedAt).toLocaleString('pt-BR');
+        qs('lastSync').textContent = `Sem crédito da API. Exibindo último snapshot ${cacheDate}`;
+        return;
+      }
+
+      qs('artistGrid').innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(err.message)}</div>`;
+      qs('lastSync').textContent = 'Falha na sincronização';
+    }
+  }
+
+  function saveArtist() {
+    const name = qs('artistName').value.trim();
+    const spUrl = qs('spotifyUrl').value.trim();
+    const ytUrl = qs('youtubeUrl').value.trim();
+
+    const err = msg => {
+      formError.textContent = msg;
+      formError.classList.remove('hidden');
+    };
+
+    if (!name) return err('Digite o nome do artista.');
+    if (!extractSpotifyId(spUrl)) return err('Cole um link válido do artista no Spotify.');
+    if (ytUrl && !isYouTubeChannel(ytUrl)) return err('Cole um link válido de canal no YouTube.');
+
+    const items = getArtists();
+    if (items.some(i => i.artistName.toLowerCase() === name.toLowerCase())) return err('Artista já cadastrado.');
+
+    const newArtist = { artistName: name, spotifyUrl: spUrl, youtubeUrl: ytUrl };
+    items.push(newArtist);
+    saveArtists(items);
+
+    qs('artistName').value = '';
+    qs('spotifyUrl').value = '';
+    qs('youtubeUrl').value = '';
+    closeDrawers();
+    loadDashboard({ artistsToRefresh: [newArtist] });
+  }
+
+  function openTrafficDrawerForVideo(draft) {
+    const existingTrafficTask = findRequestedTrafficTask(draft.artistName || '', draft.videoTitle || '', draft.sourceUrl || '');
+    trafficEditTargetTask = existingTrafficTask;
+    trafficDraft = {
+      artistName: draft.artistName || 'Artista',
+      videoTitle: draft.videoTitle || 'Video',
+      currentViews: Number(draft.currentViews || 0),
+      sourceUrl: draft.sourceUrl || '',
+      coverUrl: draft.coverUrl || '',
+      budget: Number(draft.budget || budgetFromTrafficTask(existingTrafficTask) || 0),
+      viewsTarget: Number(draft.viewsTarget || existingTrafficTask?.trafficViewsTarget || existingTrafficTask?.milestone || 0),
+    };
+
+    setTrafficDrawerMode(existingTrafficTask ? 'edit' : 'create');
+
+    if (trafficSummary) {
+      trafficSummary.textContent = `${trafficDraft.artistName} · ${trafficDraft.videoTitle} · Atual ${formatViews(trafficDraft.currentViews)} views`;
+    }
+
+    if (trafficDraft.viewsTarget > 0) {
+      fillTrafficByViews(trafficDraft.viewsTarget);
+    } else if (trafficDraft.budget > 0) {
+      fillTrafficByBudget(trafficDraft.budget);
+    } else {
+      if (trafficBudgetInput) trafficBudgetInput.value = '';
+      if (trafficViewsInput) trafficViewsInput.value = '';
+      updateTrafficEstimateHint(0, 0);
+    }
+
+    openDrawer(trafficDrawer);
+    trafficViewsInput?.focus();
+  }
+
+  trafficViewsInput?.addEventListener('input', () => {
+    if (trafficInputLock) return;
+    trafficInputLock = true;
+    const views = parseViewsInput(trafficViewsInput.value);
+    fillTrafficByViews(views);
+    if (trafficDraft) {
+      trafficDraft.viewsTarget = views;
+      trafficDraft.budget = views * TRAFFIC_COST_PER_VIEW;
+    }
+    trafficInputLock = false;
+  });
+
+  trafficSendBtn?.addEventListener('click', async () => {
+    if (!trafficDraft) {
+      showToast('Selecione um vídeo para solicitar tráfego.', 'warn');
+      return;
+    }
+
+    const sourceKey = normalizeSourceUrl(trafficDraft.sourceUrl);
+    if (sourceKey && trafficSubmittingBySource.has(sourceKey)) return;
+
+    const budget = parseBrCurrencyInput(trafficBudgetInput?.value || '');
+    const viewsTarget = parseViewsInput(trafficViewsInput?.value || '');
+    if (!budget || !viewsTarget) {
+      showToast('Preencha investimento e meta de visualizações.', 'warn');
+      return;
+    }
+
+    trafficDraft.budget = budget;
+    trafficDraft.viewsTarget = viewsTarget;
+
+    try {
+      setTrafficSubmitting(trafficDraft.sourceUrl, true);
+      if (trafficSendBtn) {
+        trafficSendBtn.disabled = true;
+        trafficSendBtn.textContent = 'Enviando...';
+      }
+
+      if (trafficEditTargetTask && isTaskRequested(trafficEditTargetTask)) {
+        await clearGavetaRequestByTask(trafficEditTargetTask);
+        trafficEditTargetTask.requested = false;
+        trafficEditTargetTask.calendarEventId = '';
+        trafficEditTargetTask.upstreamTaskId = '';
+        if (trafficEditTargetTask.status !== 'done') trafficEditTargetTask.status = 'pending';
+      }
+
+      await requestTrafficFromDraft(trafficDraft);
+      showToast('Solicitação de tráfego enviada para agenda.', 'success');
+      closeDrawers();
+      await refreshRemoteRequests();
+      await loadDashboard();
+    } catch (err) {
+      showErrorToast(err, 'Falha ao enviar solicitação de tráfego.');
+    } finally {
+      setTrafficSubmitting(trafficDraft.sourceUrl, false);
+      if (trafficSendBtn) {
+        trafficSendBtn.disabled = false;
+        setTrafficDrawerMode(trafficEditTargetTask ? 'edit' : 'create');
+      }
+    }
+  });
+
+  trafficCancelBtn?.addEventListener('click', async () => {
+    if (!trafficEditTargetTask) {
+      showToast('Nenhuma solicitação de tráfego para cancelar neste vídeo.', 'warn');
+      return;
+    }
+
+    const confirmed = window.confirm(`Cancelar tráfego solicitado para ${trafficEditTargetTask.artistName || 'Artista'} - ${trafficEditTargetTask.itemTitle || 'Vídeo'}?`);
+    if (!confirmed) return;
+
+    try {
+      trafficCancelBtn.disabled = true;
+      trafficCancelBtn.textContent = 'Cancelando...';
+      await clearGavetaRequestByTask(trafficEditTargetTask);
+      trafficEditTargetTask.requested = false;
+      trafficEditTargetTask.calendarEventId = '';
+      trafficEditTargetTask.upstreamTaskId = '';
+      if (trafficEditTargetTask.status !== 'done') trafficEditTargetTask.status = 'pending';
+      saveArtTasks();
+      showToast('Tráfego solicitado cancelado.', 'success');
+      closeDrawers();
+      await refreshRemoteRequests();
+      await loadDashboard();
+    } catch (err) {
+      showErrorToast(err, 'Não foi possível cancelar a solicitação de tráfego.');
+    } finally {
+      trafficCancelBtn.disabled = false;
+      trafficCancelBtn.textContent = 'Cancelar tráfego solicitado';
+    }
+  });
+
+  qs('addBtn').addEventListener('click', () => openDrawer(addDrawer));
+  artBtn.addEventListener('click', () => {
+    artArtistFilter = '';
+    artTaskFocusId = '';
+    openDrawer(artDrawer);
+    renderArtTasks();
+  });
+  qs('refreshBtn').addEventListener('click', () => {
+    if (!confirmFullRefresh()) return;
+    loadDashboard({ forceRefresh: true });
+  });
+  qs('manageBtn').addEventListener('click', () => openDrawer(manageDrawer));
+  qs('closeAdd').addEventListener('click', closeDrawers);
+  qs('closeManage').addEventListener('click', closeDrawers);
+  closeArtBtn.addEventListener('click', closeDrawers);
+  closeTrafficBtn?.addEventListener('click', closeDrawers);
+  backdrop.addEventListener('click', closeDrawers);
+  qs('saveArtist').addEventListener('click', saveArtist);
+
+  artTabPending.addEventListener('click', () => { artActiveTab = 'pending'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabProgress.addEventListener('click', () => { artActiveTab = 'progress'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabReady.addEventListener('click', () => { artActiveTab = 'ready'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabDone.addEventListener('click', () => { artActiveTab = 'done'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+
+  resetRequestsBtn?.addEventListener('click', async () => {
+    const selectedTask = artTasks.find(t => t.id === artTaskFocusId);
+    if (!selectedTask) {
+      showToast('Selecione primeiro o item que deseja zerar.', 'warn');
+      return;
+    }
+
+    const confirmReset = window.confirm(`Deseja zerar apenas a solicitacao de ${selectedTask.artistName || 'Artista'} - ${selectedTask.itemTitle || 'Item'}?`);
+    if (!confirmReset) return;
+
+    try {
+      const resetData = await clearGavetaRequestByTask(selectedTask);
+      if (Array.isArray(resetData?.requests)) {
+        remoteRequests = resetData.requests;
+      }
+      const selectedSig = String(selectedTask.signature || taskSignature(selectedTask));
+      const selectedLoose = taskLooseSignatureFromParts(selectedTask.type, selectedTask.artistName, selectedTask.itemTitle);
+      const selectedSource = normalizeSourceUrl(selectedTask.sourceUrl);
+      remoteRequests = remoteRequests.filter(req => {
+        const reqSig = String(req.signature || '');
+        const reqLoose = taskLooseSignatureFromParts(req.type, req.artistName, req.itemTitle);
+        const reqSource = normalizeSourceUrl(req.sourceUrl);
+        if (reqSig && reqSig === selectedSig) return false;
+        if (selectedLoose && reqLoose === selectedLoose) return false;
+        if (selectedSource && reqSource && reqSource === selectedSource) return false;
+        return true;
+      });
+      selectedTask.requested = false;
+      selectedTask.calendarEventId = '';
+      selectedTask.upstreamTaskId = '';
+      if (selectedTask.status !== 'done') selectedTask.status = 'pending';
+      saveArtTasks();
+      showToast('Solicitacao do item selecionado foi zerada.', 'success');
+      await refreshRemoteRequests();
+      await loadDashboard();
+    } catch (err) {
+      showErrorToast(err, 'Nao foi possivel zerar esta solicitacao agora.');
+    }
+  });
+
+  artAddManualBtn.addEventListener('click', () => {
+    const artistName = window.prompt('Nome do artista');
+    if (!artistName) return;
+    const itemTitle = window.prompt('Titulo da arte (ex: Single X 100k)');
+    if (!itemTitle) return;
+    ensureAutoTask({
+      type: 'manual',
+      artistName,
+      itemTitle,
+      currentValue: 0,
+      milestone: 0,
+      metricLabel: 'Arte manual',
+    });
+    saveArtTasks();
+    openDrawer(artDrawer);
+  });
+
+  qs('exportBtn').addEventListener('click', exportArtists);
+  qs('importBtn').addEventListener('click', () => qs('importInput').click());
+  qs('importInput').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    try {
+      await importArtists(file);
+      showToast('Lista importada com sucesso.', 'success');
+    } catch (error) {
+      showErrorToast(error, 'Falha ao importar lista.');
+    }
+  });
+
+  ['artistName', 'spotifyUrl', 'youtubeUrl'].forEach(id =>
+    qs(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveArtist();
+    })
+  );
+
+  function openMenuDrawer() {
+    menuBackdrop.classList.remove('hidden');
+    menuDrawer.classList.remove('hidden');
+  }
+
+  function closeMenuDrawer() {
+    menuBackdrop.classList.add('hidden');
+    menuDrawer.classList.add('hidden');
+  }
+
+  menuBtn.addEventListener('click', openMenuDrawer);
+  menuBackdrop.addEventListener('click', closeMenuDrawer);
+  menuCloseBtn.addEventListener('click', closeMenuDrawer);
+  menuAddBtn.addEventListener('click', () => { closeMenuDrawer(); openDrawer(addDrawer); });
+  menuManageBtn.addEventListener('click', () => { closeMenuDrawer(); openDrawer(manageDrawer); });
+  menuArtBtn.addEventListener('click', () => {
+    closeMenuDrawer();
+    artArtistFilter = '';
+    artTaskFocusId = '';
+    openDrawer(artDrawer);
+    renderArtTasks();
+  });
+  menuRefreshBtn.addEventListener('click', () => { closeMenuDrawer(); if (confirmFullRefresh()) loadDashboard({ forceRefresh: true }); });
+  menuExportBtn.addEventListener('click', () => { closeMenuDrawer(); exportArtists(); });
+  menuImportBtn.addEventListener('click', () => { closeMenuDrawer(); qs('importInput').click(); });
+
+  qs('artistGrid').addEventListener('click', async (event) => {
+    const trafficBtn = event.target.closest('[data-quick-traffic]');
+    if (trafficBtn) {
+      openTrafficDrawerForVideo({
+        artistName: trafficBtn.getAttribute('data-artist') || 'Artista',
+        videoTitle: trafficBtn.getAttribute('data-title') || 'Video',
+        currentViews: Number(trafficBtn.getAttribute('data-current') || 0),
+        sourceUrl: trafficBtn.getAttribute('data-source') || '',
+        coverUrl: trafficBtn.getAttribute('data-cover') || '',
+      });
+      return;
+    }
+
+    const uploadBtn = event.target.closest('[data-quick-upload]');
+    if (uploadBtn) {
+      const taskPayload = {
+        type: uploadBtn.getAttribute('data-type') || 'manual',
+        artistName: uploadBtn.getAttribute('data-artist') || 'Artista',
+        itemTitle: uploadBtn.getAttribute('data-title') || 'Solicitação',
+        currentValue: Number(uploadBtn.getAttribute('data-current') || 0),
+        milestone: Number(uploadBtn.getAttribute('data-milestone') || 0),
+        metricLabel: uploadBtn.getAttribute('data-metric') || 'Solicitação direta',
+        coverUrl: uploadBtn.getAttribute('data-cover') || '',
+        sourceUrl: uploadBtn.getAttribute('data-source') || '',
+        demandStatus: 'do',
+      };
+
+      ensureAutoTask(taskPayload);
+      const task = artTasks.find(t => String(t.signature || '') === taskSignature(taskPayload));
+      if (!task) return;
+
+      if (task.status === 'pending') {
+        artActiveTab = 'pending';
+      } else if (task.status === 'ready' || task.status === 'done') {
+        artActiveTab = task.status;
+      } else {
+        artActiveTab = 'progress';
+      }
+      artArtistFilter = task.artistName || '';
+      artTaskFocusId = task.id;
+      openDrawer(artDrawer);
+      renderArtTasks();
+      return;
+    }
+
+    const btn = event.target.closest('[data-quick-request]');
+    if (!btn) return;
+
+    const taskPayload = {
+      type: btn.getAttribute('data-type') || 'manual',
+      artistName: btn.getAttribute('data-artist') || 'Artista',
+      itemTitle: btn.getAttribute('data-title') || 'Solicitação',
+      currentValue: Number(btn.getAttribute('data-current') || 0),
+      milestone: Number(btn.getAttribute('data-milestone') || 0),
+      metricLabel: btn.getAttribute('data-metric') || 'Solicitação direta',
+      coverUrl: btn.getAttribute('data-cover') || '',
+      sourceUrl: btn.getAttribute('data-source') || '',
+      demandStatus: 'do',
+    };
+
+    ensureAutoTask(taskPayload);
+    const task = artTasks.find(t => String(t.signature || '') === taskSignature(taskPayload));
+    if (!task) return;
+
+    const submitKey = quickRequestKey(taskPayload.type, taskPayload.artistName, taskPayload.itemTitle, taskPayload.milestone);
+    if (quickRequestSubmitting.has(submitKey) || isTaskRequested(task)) {
+      artArtistFilter = '';
+      artActiveTab = task.status || 'pending';
+      artTaskFocusId = task.id;
+      openDrawer(artDrawer);
+      renderArtTasks();
+      return;
+    }
+
+    try {
+      quickRequestSubmitting.add(submitKey);
+      refreshQuickRequestButtonsInGrid();
+      await requestTaskFromTask(task);
+      saveArtTasks();
+      showToast('Pedido enviado e confirmado na agenda.', 'success');
+      artArtistFilter = '';
+      artActiveTab = 'progress';
+      artTaskFocusId = task.id;
+      openDrawer(artDrawer);
+      renderArtTasks();
+    } catch (err) {
+      alert(err.message || 'Falha ao enviar solicitação para agenda.');
+    } finally {
+      quickRequestSubmitting.delete(submitKey);
+      refreshQuickRequestButtonsInGrid();
+    }
+  });
+
+  setInterval(updateRefreshButtonState, 30000);
+  updateRefreshButtonState();
+
+  (async () => {
+    artTasks = loadArtTasks().map(task => {
+      const normalized = { ...task };
+      if (!Array.isArray(normalized.assets)) normalized.assets = [];
+      if (!normalized.assets.length && normalized.assetDataUrl) {
+        normalized.assets = [{
+          name: normalized.assetName || 'arte.png',
+          dataUrl: normalized.assetDataUrl,
+          mime: 'image/png',
+        }];
+      }
+      normalized.requested = Boolean(normalized.requested);
+      normalized.driveUrl = String(normalized.driveUrl || '').trim();
+      normalized.coverUrl = String(normalized.coverUrl || '').trim();
+      normalized.sourceUrl = String(normalized.sourceUrl || '').trim();
+      return normalized;
+    });
+    renderArtIndicators();
+    renderArtForecast();
+    renderArtTasks();
+    renderGavetaRequests();
+    await refreshRemoteRequests();
+    setInterval(refreshRemoteRequests, 45000);
+
+    const bootstrapped = localStorage.getItem(CLOUD_SYNC_BOOTSTRAP_KEY) === '1';
+    if (!bootstrapped || getArtists().length === 0) {
+      await bootstrapArtistsFromCloud();
+    } else {
+      queueCloudSync(getArtists());
+    }
+
+    renderSavedArtists();
+    loadDashboard();
+  })();
+</script>
 </body>
 </html>
