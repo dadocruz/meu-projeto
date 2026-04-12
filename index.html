@@ -291,7 +291,7 @@
 <aside class="drawer hidden" id="artDrawer">
   <div class="drawer-head">
     <h3>Solicitações de Arte</h3>
-    <p>Pedido rápido por item: enviar para criação, anexar referência e acompanhar entrega.</p>
+    <p>Painel de entrega: subir Feed e Reels no Drive e compartilhar com o cliente.</p>
   </div>
   <div class="drawer-body">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -301,15 +301,6 @@
       <button class="btn dark sm" id="artTabDone">Entregues</button>
       <button class="btn red sm" id="artAddManualBtn">+ Arte manual</button>
       <button class="btn dark sm" id="resetRequestsBtn">Zerar item selecionado</button>
-    </div>
-    <div class="flow-row" style="margin-top:10px">
-      <span class="status-pill status-pending">Solicitada</span>
-      <span class="flow-arrow">-></span>
-      <span class="status-pill status-progress">Producao</span>
-      <span class="flow-arrow">-></span>
-      <span class="status-pill status-ready">Pronta</span>
-      <span class="flow-arrow">-></span>
-      <span class="status-pill status-done">Entregue</span>
     </div>
     <div id="artTasksList" class="media-list"></div>
   </div>
@@ -1869,10 +1860,14 @@
         <div class="art-row">
           <button class="btn dark sm" data-request="${esc(task.id)}" disabled>Item selecionado</button>
           <label class="btn dark sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-            Anexar capa (opcional)
-            <input type="file" accept="image/*" data-upload-cover="${esc(task.id)}" style="display:none">
+            Anexar Feed
+            <input type="file" accept="image/*,video/*" data-upload-feed="${esc(task.id)}" style="display:none">
           </label>
-          <button class="btn dark sm" data-send-cover="${esc(task.id)}">Enviar capa</button>
+          <label class="btn dark sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            Anexar Reels
+            <input type="file" accept="image/*,video/*" data-upload-reels="${esc(task.id)}" style="display:none">
+          </label>
+          <button class="btn dark sm" data-send-delivery="${esc(task.id)}">Subir artes no Drive</button>
           ${(task.assets || []).map((asset, i) => {
             const href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl || '';
             if (!href) return '';
@@ -1887,14 +1882,14 @@
           </div>
           <div class="upload-progress"><div class="upload-progress-fill" data-upload-fill style="width:0%"></div></div>
         </div>
-        <div class="art-task-meta">Status do pedido: ${requested ? 'pedido enviado para agenda' : 'aguardando envio'}</div>
-        <div class="art-task-meta">Use o botao Pedir arte no painel para solicitar em 1 clique.</div>
-        ${task.driveUrl ? `<div class="art-row"><a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a><button class="btn dark sm" data-copy-drive="${esc(task.id)}">Copiar link</button></div>` : ''}
+        <div class="art-task-meta">Entrega: envie arte de Feed e/ou Reels para disponibilizar ao cliente.</div>
+        <div class="art-task-meta">${requested ? 'Pedido já existe na agenda.' : 'Entrega independente da solicitação.'}</div>
+        ${task.driveUrl ? `<div class="art-row"><a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponível para ele visualizar</a><button class="btn dark sm" data-copy-drive="${esc(task.id)}">Copiar link</button></div>` : ''}
       </div>
     `;
     }
 
-    artTasksList.innerHTML = `<section class="task-group"><div class="task-group-title requested">Pedido selecionado</div>${filtered.map(renderTaskCard).join('')}</section>`;
+    artTasksList.innerHTML = `<section class="task-group"><div class="task-group-title requested">Entrega selecionada</div>${filtered.map(renderTaskCard).join('')}</section>`;
 
     artTasksList.querySelectorAll('[data-request]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -1907,33 +1902,38 @@
       });
     });
 
-    artTasksList.querySelectorAll('[data-send-cover]').forEach(btn => {
+    artTasksList.querySelectorAll('[data-send-delivery]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-send-cover');
+        const id = btn.getAttribute('data-send-delivery');
         const task = artTasks.find(t => t.id === id);
         if (!task) return;
 
-        const fileInput = artTasksList.querySelector(`[data-upload-cover="${id}"]`);
-        const pickedFile = fileInput?.files?.[0] || null;
-        if (!pickedFile) {
-          alert('Anexe a capa antes de enviar.');
+        const feedInput = artTasksList.querySelector(`[data-upload-feed="${id}"]`);
+        const reelsInput = artTasksList.querySelector(`[data-upload-reels="${id}"]`);
+        const feedFile = feedInput?.files?.[0] || null;
+        const reelsFile = reelsInput?.files?.[0] || null;
+
+        const filesToUpload = [];
+        if (feedFile) {
+          filesToUpload.push(new File([feedFile], normalizeSlotFileName(task, feedFile, 'feed'), { type: feedFile.type || 'application/octet-stream' }));
+        }
+        if (reelsFile) {
+          filesToUpload.push(new File([reelsFile], normalizeSlotFileName(task, reelsFile, 'reels'), { type: reelsFile.type || 'application/octet-stream' }));
+        }
+
+        if (!filesToUpload.length) {
+          alert('Anexe ao menos uma arte (Feed ou Reels) antes de enviar.');
           return;
         }
 
-        const renamed = new File([pickedFile], normalizeSlotFileName(task, pickedFile, 'cover'), { type: pickedFile.type || 'application/octet-stream' });
-
         try {
-          if (!isTaskRequested(task)) {
-            await requestTaskFromTask(task);
-          }
-
           setUploadState(task.id, {
             phase: 'preparing',
             progress: 0,
-            message: 'Preparando capa...',
+            message: 'Preparando artes para envio...',
           });
 
-          const uploaded = await uploadGavetaAssets(task, [renamed], state => setUploadState(task.id, state));
+          const uploaded = await uploadGavetaAssets(task, filesToUpload, state => setUploadState(task.id, state));
           const remoteAssets = Array.isArray(uploaded.uploaded) ? uploaded.uploaded : [];
           task.assets = [...(Array.isArray(task.assets) ? task.assets : []), ...remoteAssets].slice(0, 12);
           if (!task.driveUrl && remoteAssets[0]?.driveUrl) task.driveUrl = remoteAssets[0].driveUrl;
@@ -1945,18 +1945,19 @@
           setUploadState(task.id, {
             phase: 'done',
             progress: 100,
-            message: 'Capa enviada com sucesso.',
+            message: 'Entrega enviada com sucesso.',
           });
-          showToast('Capa enviada para o Drive. Link pronto para compartilhar.', 'success');
+          showToast('Artes enviadas para o Drive. Arte disponível para ele visualizar.', 'success');
           setTimeout(() => clearUploadState(task.id), 5000);
-          if (fileInput) fileInput.value = '';
+          if (feedInput) feedInput.value = '';
+          if (reelsInput) reelsInput.value = '';
         } catch (err) {
           setUploadState(task.id, {
             phase: 'error',
             progress: 0,
-            message: err.message || 'Nao foi possivel enviar a capa.',
+            message: err.message || 'Nao foi possivel enviar as artes.',
           });
-          alert((err.message || 'Nao foi possivel enviar a capa.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
+          alert((err.message || 'Nao foi possivel enviar as artes.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
         }
       });
     });
