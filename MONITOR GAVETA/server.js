@@ -56,6 +56,29 @@ function gavetaTaskSignature(task = {}) {
     .toLowerCase();
 }
 
+function normalizeLooseText(value = '') {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function normalizeSourceUrl(value = '') {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const u = new URL(raw);
+    const host = String(u.hostname || '').replace(/^www\./i, '').toLowerCase();
+    const pathname = String(u.pathname || '').replace(/\/+$/, '').toLowerCase();
+    return `${host}${pathname}`;
+  } catch {
+    return raw.toLowerCase();
+  }
+}
+
 function formatPtNumber(value) {
   const n = Number(value || 0);
   if (!Number.isFinite(n) || n <= 0) return '';
@@ -1051,15 +1074,72 @@ app.get('/api/gaveta/requests', async (_req, res) => {
 app.delete('/api/gaveta/requests', async (req, res) => {
   try {
     const signature = String(req.query?.signature || '').trim().toLowerCase();
+    const type = normalizeLooseText(req.query?.type || '');
+    const artistName = normalizeLooseText(req.query?.artistName || '');
+    const itemTitle = normalizeLooseText(req.query?.itemTitle || '');
+    const sourceUrl = normalizeSourceUrl(req.query?.sourceUrl || '');
+    const milestone = Number(req.query?.milestone || 0);
+
     if (!signature) {
-      await writeGavetaRequestsStoreQueued([]);
-      return res.json({ ok: true, cleared: true, requests: [] });
+      const hasFallbackFilter = Boolean(type || artistName || itemTitle || sourceUrl || milestone > 0);
+      if (!hasFallbackFilter) {
+        await writeGavetaRequestsStoreQueued([]);
+        return res.json({ ok: true, cleared: true, deletedCount: 'all', requests: [] });
+      }
+
+      const store = await readGavetaRequestsStore();
+      const beforeCount = (store.items || []).length;
+      const nextItems = (store.items || []).filter(item => {
+        const itemType = normalizeLooseText(item.type || '');
+        const itemArtist = normalizeLooseText(item.artistName || '');
+        const itemTitleNorm = normalizeLooseText(item.itemTitle || '');
+        const itemSource = normalizeSourceUrl(item.sourceUrl || '');
+        const itemMilestone = Number(item.milestone || 0);
+
+        const typeMatch = !type || itemType === type;
+        const artistMatch = !artistName || itemArtist === artistName;
+        const titleMatch = !itemTitle || itemTitleNorm === itemTitle;
+        const sourceMatch = !sourceUrl || (itemSource && itemSource === sourceUrl);
+        const milestoneMatch = !milestone || itemMilestone === milestone;
+
+        const shouldDelete = typeMatch && artistMatch && titleMatch && sourceMatch && milestoneMatch;
+        return !shouldDelete;
+      });
+
+      await writeGavetaRequestsStoreQueued(nextItems);
+      return res.json({
+        ok: true,
+        cleared: true,
+        deletedCount: Math.max(0, beforeCount - nextItems.length),
+        match: { type, artistName, itemTitle, sourceUrl, milestone },
+        requests: nextItems,
+      });
     }
 
     const store = await readGavetaRequestsStore();
-    const nextItems = (store.items || []).filter(item => String(item.signature || '').toLowerCase() !== signature);
+    const beforeCount = (store.items || []).length;
+    const nextItems = (store.items || []).filter(item => {
+      const sameSignature = String(item.signature || '').toLowerCase() === signature;
+      if (sameSignature) return false;
+
+      const itemType = normalizeLooseText(item.type || '');
+      const itemArtist = normalizeLooseText(item.artistName || '');
+      const itemTitleNorm = normalizeLooseText(item.itemTitle || '');
+      const itemSource = normalizeSourceUrl(item.sourceUrl || '');
+      const itemMilestone = Number(item.milestone || 0);
+
+      const fallbackTypeMatch = !type || itemType === type;
+      const fallbackArtistMatch = !artistName || itemArtist === artistName;
+      const fallbackTitleMatch = !itemTitle || itemTitleNorm === itemTitle;
+      const fallbackSourceMatch = !sourceUrl || (itemSource && itemSource === sourceUrl);
+      const fallbackMilestoneMatch = !milestone || itemMilestone === milestone;
+      const shouldDeleteByFallback = fallbackTypeMatch && fallbackArtistMatch && fallbackTitleMatch && fallbackSourceMatch && fallbackMilestoneMatch;
+
+      return !shouldDeleteByFallback;
+    });
+
     await writeGavetaRequestsStoreQueued(nextItems);
-    return res.json({ ok: true, cleared: true, signature, requests: nextItems });
+    return res.json({ ok: true, cleared: true, signature, deletedCount: Math.max(0, beforeCount - nextItems.length), requests: nextItems });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
   }

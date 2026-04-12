@@ -34,6 +34,7 @@
     .btn:hover{transform:translateY(-1px);filter:brightness(1.12)}
     .btn:disabled{opacity:.55;cursor:not-allowed;filter:none;transform:none}
     .btn.red{background:#ef233c;color:#fff;box-shadow:0 5px 18px rgba(239,35,60,.38)}
+    .btn.orange{background:rgba(255,107,0,.2);border:1px solid rgba(255,107,0,.45);color:#ffd8b8}
     .btn.dark{background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line2)}
     .btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
     .menu-toggle{display:none;align-items:center;justify-content:center;gap:8px;min-width:42px;height:42px;padding:0 12px}
@@ -122,7 +123,6 @@
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
-    .traffic-tag{display:inline-block;background:rgba(255,107,0,.18);border:1px solid rgba(255,107,0,.4);color:#ff9a50;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-top:3px;letter-spacing:.06em}
     .demand-do{background:rgba(65,211,125,.15);border:1px solid rgba(65,211,125,.45);color:#86efac}
     .demand-queue{background:rgba(255,217,61,.12);border:1px solid rgba(255,217,61,.45);color:#ffe585}
     .art-task{padding:11px 12px;border-top:1px solid var(--line);display:grid;gap:8px}
@@ -356,12 +356,12 @@
   <div class="drawer-body">
     <div class="hint" id="trafficSummary">Selecione um vídeo com baixa visualização para iniciar.</div>
     <div class="field">
-      <label>Investimento (R$)</label>
-      <input class="input" id="trafficBudgetInput" placeholder="Ex.: 50,00">
-    </div>
-    <div class="field">
       <label>Meta de visualizações</label>
       <input class="input" id="trafficViewsInput" placeholder="Ex.: 5.000">
+    </div>
+    <div class="field">
+      <label>Investimento (R$)</label>
+      <input class="input" id="trafficBudgetInput" placeholder="Ex.: 50,00" inputmode="numeric" autocomplete="off">
     </div>
     <div class="hint" id="trafficEstimateHint">Preencha um dos campos para calcular o outro automaticamente.</div>
     <button class="btn red" id="trafficSendBtn">Enviar solicitação de tráfego</button>
@@ -380,10 +380,11 @@
   const DASHBOARD_CACHE_KEY = 'gaveta-radar-v5-dashboard-cache';
   const CLOUD_SYNC_BOOTSTRAP_KEY = 'gaveta-radar-v5-cloud-bootstrap';
   const FULL_REFRESH_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+  const BACKEND_REQUEST_TIMEOUT_MS = 20000;
   const LAST_FULL_REFRESH_KEY = 'gaveta-radar-v5-last-full-refresh';
   const ART_TASKS_KEY = 'gaveta-radar-v5-art-tasks';
   const GAVETA_CALENDAR_ID = '054ef9390875ee8d2eafa8c85b0d6f3f76701f5aa907a1685ff7a005a12f8ebb@group.calendar.google.com';
-  const TRAFFIC_VIEWS_PER_REAL = 100;
+  const TRAFFIC_COST_PER_VIEW = 0.015;
 
   function initialBackendUrl() {
     const forced = new URLSearchParams(window.location.search).get('api');
@@ -405,14 +406,34 @@
   async function fetchBackendJson(pathname, options = {}) {
     let lastError = null;
     for (const baseUrl of backendCandidates()) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), BACKEND_REQUEST_TIMEOUT_MS);
       try {
-        const res = await fetch(`${baseUrl}${pathname}`, options);
-        const data = await res.json();
+        const mergedOptions = {
+          ...options,
+          signal: options?.signal || controller.signal,
+        };
+
+        const res = await fetch(`${baseUrl}${pathname}`, mergedOptions);
+        const text = await res.text();
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          data = { ok: false, error: text || 'Resposta inválida do servidor.' };
+        }
+
         if (!res.ok || !data.ok) throw new Error(data.error || 'Erro no servidor');
         activeBackendUrl = baseUrl;
         return data;
       } catch (err) {
-        lastError = err;
+        if (err?.name === 'AbortError') {
+          lastError = new Error('Tempo de resposta do backend esgotado. Tente novamente.');
+        } else {
+          lastError = err;
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
     throw lastError || new Error('Não foi possível conectar ao backend.');
@@ -444,10 +465,18 @@
     });
   }
 
-  async function clearGavetaRequestBySignature(signature) {
-    const s = String(signature || '').trim();
-    if (!s) throw new Error('Assinatura da solicitacao ausente.');
-    return fetchBackendJson(`/api/gaveta/requests?signature=${encodeURIComponent(s)}`, {
+  async function clearGavetaRequestByTask(task) {
+    const signature = String(task?.signature || taskSignature(task || {})).trim();
+    const params = new URLSearchParams();
+    if (signature) params.set('signature', signature);
+    if (task?.type) params.set('type', String(task.type));
+    if (task?.artistName) params.set('artistName', String(task.artistName));
+    if (task?.itemTitle) params.set('itemTitle', String(task.itemTitle));
+    if (task?.sourceUrl) params.set('sourceUrl', String(task.sourceUrl));
+    if (Number(task?.milestone || 0) > 0) params.set('milestone', String(Number(task.milestone || 0)));
+    if (!params.toString()) throw new Error('Dados da solicitacao ausentes para reset.');
+
+    return fetchBackendJson(`/api/gaveta/requests?${params.toString()}`, {
       method: 'DELETE',
     });
   }
@@ -646,6 +675,12 @@
     }, 2800);
   }
 
+  function showErrorToast(error, fallbackMessage) {
+    const raw = String(error?.message || '').trim();
+    const message = raw || String(fallbackMessage || 'Erro inesperado. Tente novamente.');
+    showToast(message, 'error');
+  }
+
   function taskSignatureFromParts(type, artistName, itemTitle, milestone) {
     return [type || '', artistName || '', itemTitle || '', Number(milestone || 0)].join('|').toLowerCase();
   }
@@ -689,6 +724,20 @@
     return Number.isFinite(n) ? Math.max(0, n) : 0;
   }
 
+  function parseCurrencyToCents(text) {
+    const digits = String(text || '').replace(/\D/g, '');
+    if (!digits) return 0;
+    return Math.max(0, Number(digits));
+  }
+
+  function formatCurrencyFromCents(cents) {
+    const n = Math.max(0, Number(cents || 0));
+    return (n / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
   function parseViewsInput(text) {
     const raw = String(text || '').trim().replace(/[^0-9]/g, '');
     const n = Number(raw || 0);
@@ -716,17 +765,23 @@
 
   function fillTrafficByBudget(budget) {
     const b = Math.max(0, Number(budget || 0));
-    const views = Math.round(b * TRAFFIC_VIEWS_PER_REAL);
-    if (trafficBudgetInput) trafficBudgetInput.value = b ? b.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    const views = Math.max(0, Math.round(b / TRAFFIC_COST_PER_VIEW));
+    if (trafficBudgetInput) {
+      const cents = Math.round(b * 100);
+      trafficBudgetInput.value = cents > 0 ? formatCurrencyFromCents(cents) : '';
+    }
     if (trafficViewsInput) trafficViewsInput.value = views ? formatViews(views) : '';
     updateTrafficEstimateHint(b, views);
   }
 
   function fillTrafficByViews(views) {
     const v = Math.max(0, Number(views || 0));
-    const budget = v / TRAFFIC_VIEWS_PER_REAL;
+    const budget = v * TRAFFIC_COST_PER_VIEW;
     if (trafficViewsInput) trafficViewsInput.value = v ? formatViews(v) : '';
-    if (trafficBudgetInput) trafficBudgetInput.value = budget ? budget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    if (trafficBudgetInput) {
+      const cents = Math.round(budget * 100);
+      trafficBudgetInput.value = cents > 0 ? formatCurrencyFromCents(cents) : '';
+    }
     updateTrafficEstimateHint(budget, v);
   }
 
@@ -774,6 +829,19 @@
       btn.textContent = requested ? 'Pedido enviado' : 'Pedir arte';
       btn.classList.toggle('requested', requested);
       btn.classList.toggle('dark', !requested);
+    });
+
+    grid.querySelectorAll('[data-quick-traffic]').forEach(btn => {
+      const artist = btn.getAttribute('data-artist') || '';
+      const title = btn.getAttribute('data-title') || '';
+      const currentViews = Number(btn.getAttribute('data-current') || 0);
+      const source = btn.getAttribute('data-source') || '';
+      const requested = hasRequestedSignature('traffic', artist, title, currentViews, source);
+      const submitting = Boolean(source && trafficSubmittingBySource.has(normalizeSourceUrl(source)));
+      btn.disabled = requested || submitting;
+      btn.textContent = requested ? 'Tráfego solicitado' : (submitting ? 'Enviando...' : 'Solicitar tráfego');
+      btn.classList.toggle('requested', requested);
+      btn.classList.toggle('orange', !requested);
     });
   }
 
@@ -1831,7 +1899,7 @@
           <div class="traffic-meta">${fmtDate(a.publishedAt)} · ${Number(a.daysOld) || 0}d atrás</div>
         </div>
         <div class="traffic-cta">
-          <span class="cta-label">Rodar tráfego</span>
+          <span class="cta-label">Solicitar tráfego</span>
           <div class="cta-views">${compact(a.views)} views</div>
         </div>
       </a>
@@ -1880,14 +1948,13 @@
         <div class="media-info">
           <div class="media-title"><a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener">${esc(v.title || 'Video')}</a></div>
           <div class="media-date">${fmtDate(v.publishedAt) || 'sem data'}${v.daysOld < 999 ? ` · ${v.daysOld}d` : ''}</div>
-          ${v.needsTraffic ? '<span class="traffic-tag">TRAFEGO RECOMENDADO</span>' : ''}
           ${demand.status !== 'idle' ? `<span class="priority-dot ${esc(demand.status === 'do' ? 'priority-do' : 'priority-queue')}" title="${demand.status === 'do' ? 'Fazer arte' : 'Na fila'}"></span>` : ''}
         </div>
         <div class="media-stat">
           <div class="media-num">${compact(v.views)}</div>
           <div class="media-lbl">views</div>
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
-          ${v.needsTraffic ? `<button class="btn sm ${trafficRequested ? 'requested' : 'dark'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(trafficRequested || trafficSubmitting) ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>` : ''}
+          ${v.needsTraffic ? `<button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(trafficRequested || trafficSubmitting) ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Solicitar tráfego')}</button>` : ''}
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
         </div>
       </div>
@@ -2116,20 +2183,25 @@
     } else if (trafficDraft.viewsTarget > 0) {
       fillTrafficByViews(trafficDraft.viewsTarget);
     } else {
-      fillTrafficByBudget(50);
+      if (trafficBudgetInput) trafficBudgetInput.value = '';
+      if (trafficViewsInput) trafficViewsInput.value = '';
+      updateTrafficEstimateHint(0, 0);
     }
 
     openDrawer(trafficDrawer);
+    trafficViewsInput?.focus();
   }
 
   trafficBudgetInput?.addEventListener('input', () => {
     if (trafficInputLock) return;
     trafficInputLock = true;
-    const budget = parseBrCurrencyInput(trafficBudgetInput.value);
+    const cents = parseCurrencyToCents(trafficBudgetInput.value);
+    trafficBudgetInput.value = cents ? formatCurrencyFromCents(cents) : '';
+    const budget = cents / 100;
     fillTrafficByBudget(budget);
     if (trafficDraft) {
       trafficDraft.budget = budget;
-      trafficDraft.viewsTarget = Math.round(budget * TRAFFIC_VIEWS_PER_REAL);
+      trafficDraft.viewsTarget = Math.max(0, Math.round(budget / TRAFFIC_COST_PER_VIEW));
     }
     trafficInputLock = false;
   });
@@ -2141,14 +2213,14 @@
     fillTrafficByViews(views);
     if (trafficDraft) {
       trafficDraft.viewsTarget = views;
-      trafficDraft.budget = views / TRAFFIC_VIEWS_PER_REAL;
+      trafficDraft.budget = views * TRAFFIC_COST_PER_VIEW;
     }
     trafficInputLock = false;
   });
 
   trafficSendBtn?.addEventListener('click', async () => {
     if (!trafficDraft) {
-      alert('Selecione um vídeo para solicitar tráfego.');
+      showToast('Selecione um vídeo para solicitar tráfego.', 'warn');
       return;
     }
 
@@ -2158,7 +2230,7 @@
     const budget = parseBrCurrencyInput(trafficBudgetInput?.value || '');
     const viewsTarget = parseViewsInput(trafficViewsInput?.value || '');
     if (!budget || !viewsTarget) {
-      alert('Preencha investimento e meta de visualizações.');
+      showToast('Preencha investimento e meta de visualizações.', 'warn');
       return;
     }
 
@@ -2177,7 +2249,7 @@
       await refreshRemoteRequests();
       await loadDashboard();
     } catch (err) {
-      alert(err.message || 'Falha ao enviar solicitação de tráfego.');
+      showErrorToast(err, 'Falha ao enviar solicitação de tráfego.');
     } finally {
       setTrafficSubmitting(trafficDraft.sourceUrl, false);
       if (trafficSendBtn) {
@@ -2214,7 +2286,7 @@
   resetRequestsBtn?.addEventListener('click', async () => {
     const selectedTask = artTasks.find(t => t.id === artTaskFocusId);
     if (!selectedTask) {
-      alert('Selecione primeiro o item que deseja zerar.');
+      showToast('Selecione primeiro o item que deseja zerar.', 'warn');
       return;
     }
 
@@ -2222,16 +2294,32 @@
     if (!confirmReset) return;
 
     try {
-      await clearGavetaRequestBySignature(selectedTask.signature || taskSignature(selectedTask));
-      remoteRequests = remoteRequests.filter(req => String(req.signature || '') !== String(selectedTask.signature || taskSignature(selectedTask)));
+      const resetData = await clearGavetaRequestByTask(selectedTask);
+      if (Array.isArray(resetData?.requests)) {
+        remoteRequests = resetData.requests;
+      }
+      const selectedSig = String(selectedTask.signature || taskSignature(selectedTask));
+      const selectedLoose = taskLooseSignatureFromParts(selectedTask.type, selectedTask.artistName, selectedTask.itemTitle);
+      const selectedSource = normalizeSourceUrl(selectedTask.sourceUrl);
+      remoteRequests = remoteRequests.filter(req => {
+        const reqSig = String(req.signature || '');
+        const reqLoose = taskLooseSignatureFromParts(req.type, req.artistName, req.itemTitle);
+        const reqSource = normalizeSourceUrl(req.sourceUrl);
+        if (reqSig && reqSig === selectedSig) return false;
+        if (selectedLoose && reqLoose === selectedLoose) return false;
+        if (selectedSource && reqSource && reqSource === selectedSource) return false;
+        return true;
+      });
       selectedTask.requested = false;
       selectedTask.calendarEventId = '';
       selectedTask.upstreamTaskId = '';
       if (selectedTask.status !== 'done') selectedTask.status = 'pending';
       saveArtTasks();
       showToast('Solicitacao do item selecionado foi zerada.', 'success');
+      await refreshRemoteRequests();
+      await loadDashboard();
     } catch (err) {
-      alert(err.message || 'Nao foi possivel zerar esta solicitacao agora.');
+      showErrorToast(err, 'Nao foi possivel zerar esta solicitacao agora.');
     }
   });
 
@@ -2261,9 +2349,9 @@
 
     try {
       await importArtists(file);
-      alert('Lista importada com sucesso.');
+      showToast('Lista importada com sucesso.', 'success');
     } catch (error) {
-      alert(error.message || 'Falha ao importar lista.');
+      showErrorToast(error, 'Falha ao importar lista.');
     }
   });
 
