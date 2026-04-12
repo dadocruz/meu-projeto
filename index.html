@@ -124,6 +124,10 @@
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
+    .media-row.has-traffic{align-items:start;padding-top:10px;padding-bottom:10px}
+    .media-row.has-traffic .media-stat{width:112px}
+    .media-row.has-traffic .media-stat .btn.sm{display:block;width:100%;margin-top:5px}
+    .media-row.has-traffic .media-title{line-clamp:3;-webkit-line-clamp:3}
     .demand-do{background:rgba(65,211,125,.15);border:1px solid rgba(65,211,125,.45);color:#86efac}
     .demand-queue{background:rgba(255,217,61,.12);border:1px solid rgba(255,217,61,.45);color:#ffe585}
     .art-task{padding:11px 12px;border-top:1px solid var(--line);display:grid;gap:8px}
@@ -1978,7 +1982,7 @@
     const trafficRequested = hasRequestedSignature('traffic', v.artistName || '', v.title || 'Video', 0, v.youtubeUrl || '');
     const trafficSubmitting = trafficSubmittingBySource.has(normalizeSourceUrl(v.youtubeUrl || ''));
     return `
-      <div class="media-row">
+      <div class="media-row ${v.needsTraffic ? 'has-traffic' : ''}">
         <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
           <img class="media-thumb yt-thumb" src="${esc(v.thumbnail || '')}" alt="${esc(v.title || 'Video')}" loading="lazy">
         </a>
