@@ -111,7 +111,7 @@
     .up{color:#6ddf9e} .dn{color:#ff8fa3} .neu{color:var(--soft)}
 
     .media-list{display:grid;gap:0}
-    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:center;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
+    .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:start;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
     .media-row:hover{background:rgba(255,255,255,.03)}
     .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
     .media-thumb.yt-thumb{height:30px;border-radius:6px}
@@ -120,14 +120,11 @@
     .media-title a:hover{text-decoration:underline;opacity:.8}
     .media-date{font-size:10px;color:var(--muted)}
     .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
-    .media-stat .btn.sm{padding:4px 8px;font-size:11px;border-radius:8px;white-space:nowrap}
+    .media-actions{grid-column:2 / -1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+    .media-actions .btn.sm{padding:4px 9px;font-size:11px;border-radius:8px;white-space:nowrap}
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
-    .media-row.has-traffic{align-items:start;padding-top:10px;padding-bottom:10px}
-    .media-row.has-traffic .media-stat{width:112px}
-    .media-row.has-traffic .media-stat .btn.sm{display:block;width:100%;margin-top:5px}
-    .media-row.has-traffic .media-title{line-clamp:3;-webkit-line-clamp:3}
     .demand-do{background:rgba(65,211,125,.15);border:1px solid rgba(65,211,125,.45);color:#86efac}
     .demand-queue{background:rgba(255,217,61,.12);border:1px solid rgba(255,217,61,.45);color:#ffe585}
     .art-task{padding:11px 12px;border-top:1px solid var(--line);display:grid;gap:8px}
@@ -1971,6 +1968,8 @@
           ${hasPlays
             ? `<div class="media-num">${compact(s.plays)}</div><div class="media-lbl">streams</div>`
             : '<div class="no-data">--</div>'}
+        </div>
+        <div class="media-actions">
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}">Subir artes</button>
         </div>
@@ -1986,7 +1985,7 @@
     const trafficRequested = hasRequestedSignature('traffic', v.artistName || '', v.title || 'Video', 0, v.youtubeUrl || '');
     const trafficSubmitting = trafficSubmittingBySource.has(normalizeSourceUrl(v.youtubeUrl || ''));
     return `
-      <div class="media-row ${v.needsTraffic ? 'has-traffic' : ''}">
+      <div class="media-row">
         <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
           <img class="media-thumb yt-thumb" src="${esc(v.thumbnail || '')}" alt="${esc(v.title || 'Video')}" loading="lazy">
         </a>
@@ -1998,6 +1997,8 @@
         <div class="media-stat">
           <div class="media-num">${compact(v.views)}</div>
           <div class="media-lbl">views</div>
+        </div>
+        <div class="media-actions">
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
           ${v.needsTraffic ? `<button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>` : ''}
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
