@@ -114,6 +114,7 @@
     .media-row{display:grid;grid-template-columns:50px 1fr auto;gap:9px;align-items:start;padding:9px 13px;border-top:1px solid var(--line);transition:.12s}
     .media-row:hover{background:rgba(255,255,255,.03)}
     .media-thumb{width:50px;height:50px;border-radius:8px;object-fit:cover;background:#1a1a1a;flex-shrink:0}
+    .media-thumb.single-thumb{width:58px;height:58px;border-radius:9px}
     .media-thumb.yt-thumb{height:30px;border-radius:6px}
     .media-info{min-width:0}
     .media-title{font-size:12px;font-weight:700;line-height:1.3;margin:0 0 2px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -122,6 +123,7 @@
     .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
     .media-actions{grid-column:2 / -1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
     .media-actions .btn.sm{padding:4px 9px;font-size:11px;border-radius:8px;white-space:nowrap}
+    .media-row.single-row{grid-template-columns:58px 1fr auto}
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
     .no-data{font-size:10px;color:var(--soft);font-style:italic}
@@ -1955,9 +1957,9 @@
     const submitting = quickRequestSubmitting.has(quickRequestKey('single', s.artistName || '', s.title || 'Single', milestone));
     const requested = hasRequestedSignature('single', s.artistName || '', s.title || 'Single', milestone, s.spotifyUrl || '');
     return `
-      <div class="media-row">
+      <div class="media-row single-row">
         <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
-          <img class="media-thumb" src="${esc(s.coverUrl || '')}" alt="${esc(s.title || 'Single')}" loading="lazy">
+          <img class="media-thumb single-thumb" src="${esc(s.coverUrl || '')}" alt="${esc(s.title || 'Single')}" loading="lazy">
         </a>
         <div class="media-info">
           <div class="media-title"><a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(s.title || 'Single')}</a></div>
@@ -2000,7 +2002,7 @@
         </div>
         <div class="media-actions">
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
-          ${v.needsTraffic ? `<button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>` : ''}
+          <button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
         </div>
       </div>
@@ -2068,7 +2070,7 @@
                 return `
                 <div class="media-row">
                   <a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
-                    <img class="media-thumb" src="${esc(t.imageUrl || '')}" alt="${esc(t.title || 'Track')}" loading="lazy">
+                    <img class="media-thumb single-thumb" src="${esc(t.imageUrl || '')}" alt="${esc(t.title || 'Track')}" loading="lazy">
                   </a>
                   <div class="media-info">
                     <div class="media-title"><a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener">${esc(t.title || 'Track')}</a></div>
