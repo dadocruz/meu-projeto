@@ -235,25 +235,34 @@ async function postToGavetaAppsScript(payload) {
 }
 
 async function notifyCanceledRequests(items = []) {
-  const targets = (Array.isArray(items) ? items : []).filter(item => item && (item.upstreamTaskId || item.calendarEventId));
+  const targets = (Array.isArray(items) ? items : []).filter(Boolean);
   if (!targets.length) return [];
 
   const warnings = [];
   for (const item of targets) {
     const taskId = String(item.upstreamTaskId || '').trim();
     const calendarEventId = String(item.calendarEventId || '').trim();
+    const signature = String(item.signature || '').trim();
+    const sourceUrl = String(item.sourceUrl || '').trim();
+    const type = String(item.type || '').trim();
+    const milestone = Number(item.milestone || 0);
     const artist = String(item.artistName || '').trim();
     const title = String(item.itemTitle || '').trim();
 
-    if (!taskId && !calendarEventId) continue;
+    if (!taskId && !calendarEventId && !artist && !title && !signature && !sourceUrl) continue;
 
     let synced = false;
+    let statusSyncOk = !taskId || Boolean(calendarEventId);
 
     try {
       await postToGavetaAppsScript({
         action: 'cancelTask',
         taskId,
         calendarEventId,
+        signature,
+        sourceUrl,
+        type,
+        milestone,
         calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
         artist,
         title,
@@ -264,28 +273,35 @@ async function notifyCanceledRequests(items = []) {
       // fallback abaixo
     }
 
-    if (!synced && taskId) {
+    if (taskId && (!synced || !statusSyncOk)) {
       try {
         await postToGavetaAppsScript({
           action: 'updateTaskStatus',
           taskId,
           status: 'canceled',
           calendarEventId,
+          signature,
+          sourceUrl,
+          type,
+          milestone,
           calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
           artist,
           title,
           note: 'Solicitacao cancelada no monitor.',
         });
         synced = true;
+        statusSyncOk = true;
       } catch {
         // warning abaixo
       }
     }
 
-    if (!synced) {
+    if (!synced || !statusSyncOk) {
       warnings.push({
         taskId,
         calendarEventId,
+        signature,
+        sourceUrl,
         artist,
         title,
       });
@@ -1181,6 +1197,8 @@ app.get('/api/gaveta/requests', async (_req, res) => {
 app.delete('/api/gaveta/requests', async (req, res) => {
   try {
     const signature = String(req.query?.signature || '').trim().toLowerCase();
+    const upstreamTaskId = String(req.query?.upstreamTaskId || req.query?.taskId || '').trim();
+    const calendarEventId = String(req.query?.calendarEventId || '').trim();
     const type = normalizeLooseText(req.query?.type || '');
     const artistName = normalizeLooseText(req.query?.artistName || '');
     const itemTitle = normalizeLooseText(req.query?.itemTitle || '');
@@ -1188,7 +1206,7 @@ app.delete('/api/gaveta/requests', async (req, res) => {
     const milestone = Number(req.query?.milestone || 0);
 
     if (!signature) {
-      const hasFallbackFilter = Boolean(type || artistName || itemTitle || sourceUrl || milestone > 0);
+      const hasFallbackFilter = Boolean(upstreamTaskId || calendarEventId || type || artistName || itemTitle || sourceUrl || milestone > 0);
       if (!hasFallbackFilter) {
         const store = await readGavetaRequestsStore();
         const warnings = await notifyCanceledRequests(store.items || []);
@@ -1204,14 +1222,18 @@ app.delete('/api/gaveta/requests', async (req, res) => {
         const itemTitleNorm = normalizeLooseText(item.itemTitle || '');
         const itemSource = normalizeSourceUrl(item.sourceUrl || '');
         const itemMilestone = Number(item.milestone || 0);
+        const itemTaskId = String(item.upstreamTaskId || item.taskId || '').trim();
+        const itemCalendarEventId = String(item.calendarEventId || '').trim();
 
+        const taskIdMatch = !upstreamTaskId || itemTaskId === upstreamTaskId;
+        const calendarEventMatch = !calendarEventId || itemCalendarEventId === calendarEventId;
         const typeMatch = !type || itemType === type;
         const artistMatch = !artistName || itemArtist === artistName;
         const titleMatch = !itemTitle || itemTitleNorm === itemTitle;
         const sourceMatch = !sourceUrl || (itemSource && itemSource === sourceUrl);
         const milestoneMatch = !milestone || itemMilestone === milestone;
 
-        const shouldDelete = typeMatch && artistMatch && titleMatch && sourceMatch && milestoneMatch;
+        const shouldDelete = taskIdMatch && calendarEventMatch && typeMatch && artistMatch && titleMatch && sourceMatch && milestoneMatch;
         return !shouldDelete;
       });
 
@@ -1222,7 +1244,7 @@ app.delete('/api/gaveta/requests', async (req, res) => {
         ok: true,
         cleared: true,
         deletedCount: Math.max(0, beforeCount - nextItems.length),
-        match: { type, artistName, itemTitle, sourceUrl, milestone },
+        match: { upstreamTaskId, calendarEventId, type, artistName, itemTitle, sourceUrl, milestone },
         requests: nextItems,
         cancellationSyncWarnings: warnings,
       });
@@ -1239,13 +1261,17 @@ app.delete('/api/gaveta/requests', async (req, res) => {
       const itemTitleNorm = normalizeLooseText(item.itemTitle || '');
       const itemSource = normalizeSourceUrl(item.sourceUrl || '');
       const itemMilestone = Number(item.milestone || 0);
+      const itemTaskId = String(item.upstreamTaskId || item.taskId || '').trim();
+      const itemCalendarEventId = String(item.calendarEventId || '').trim();
 
+      const fallbackTaskIdMatch = !upstreamTaskId || itemTaskId === upstreamTaskId;
+      const fallbackCalendarEventMatch = !calendarEventId || itemCalendarEventId === calendarEventId;
       const fallbackTypeMatch = !type || itemType === type;
       const fallbackArtistMatch = !artistName || itemArtist === artistName;
       const fallbackTitleMatch = !itemTitle || itemTitleNorm === itemTitle;
       const fallbackSourceMatch = !sourceUrl || (itemSource && itemSource === sourceUrl);
       const fallbackMilestoneMatch = !milestone || itemMilestone === milestone;
-      const shouldDeleteByFallback = fallbackTypeMatch && fallbackArtistMatch && fallbackTitleMatch && fallbackSourceMatch && fallbackMilestoneMatch;
+      const shouldDeleteByFallback = fallbackTaskIdMatch && fallbackCalendarEventMatch && fallbackTypeMatch && fallbackArtistMatch && fallbackTitleMatch && fallbackSourceMatch && fallbackMilestoneMatch;
 
       return !shouldDeleteByFallback;
     });

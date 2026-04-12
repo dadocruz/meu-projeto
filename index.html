@@ -121,9 +121,8 @@
     .media-title a:hover{text-decoration:underline;opacity:.8}
     .media-date{font-size:10px;color:var(--muted)}
     .media-stat{text-align:right;flex-shrink:0;padding-left:6px}
-    .media-actions{grid-column:1 / -1;display:flex;gap:4px;flex-wrap:nowrap;align-items:center;justify-content:center;margin-top:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:1px}
-    .media-actions .btn.sm{padding:3px 7px;font-size:10px;border-radius:8px;white-space:nowrap;line-height:1.1}
-    .media-actions::-webkit-scrollbar{height:0}
+    .media-actions{grid-column:1 / -1;display:flex;gap:3px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:5px;max-width:100%}
+    .media-actions .btn.sm{padding:2px 6px;font-size:9px;border-radius:7px;white-space:nowrap;line-height:1.05}
     .media-row.single-row{grid-template-columns:64px 1fr auto}
     .media-num{font:800 14px/1 Syne,sans-serif;white-space:nowrap}
     .media-lbl{font-size:9px;color:var(--soft);margin-top:2px}
@@ -476,6 +475,8 @@
     const signature = String(task?.signature || taskSignature(task || {})).trim();
     const params = new URLSearchParams();
     if (signature) params.set('signature', signature);
+    if (task?.upstreamTaskId) params.set('upstreamTaskId', String(task.upstreamTaskId));
+    if (task?.calendarEventId) params.set('calendarEventId', String(task.calendarEventId));
     if (task?.type) params.set('type', String(task.type));
     if (task?.artistName) params.set('artistName', String(task.artistName));
     if (task?.itemTitle) params.set('itemTitle', String(task.itemTitle));
@@ -2107,7 +2108,7 @@
           <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${(requested || submitting) ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Pedir arte')}</button>
           ${requested ? `<button class="btn sm reset-shortcut" data-reset-request="1" data-type="youtube" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-milestone="${milestone}" data-source="${esc(v.youtubeUrl || '')}">Zerar pedido</button>` : ''}
           <button class="btn sm ${trafficRequested ? 'requested' : 'orange'}" data-quick-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-current="${Number(v.views || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${trafficSubmitting ? 'disabled' : ''}>${trafficRequested ? 'Tráfego solicitado' : (trafficSubmitting ? 'Enviando...' : 'Rodar tráfego')}</button>
-          ${trafficRequested ? `<button class="btn sm reset-shortcut" data-reset-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-source="${esc(v.youtubeUrl || '')}">Zerar tráfego</button>` : ''}
+          ${trafficRequested ? `<button class="btn sm reset-shortcut" data-reset-traffic="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-source="${esc(v.youtubeUrl || '')}">Cancelar tráfego</button>` : ''}
           <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
         </div>
       </div>
@@ -2579,9 +2580,9 @@
           itemTitle: resetTrafficBtn.getAttribute('data-title') || '',
           milestone: 0,
           sourceUrl: resetTrafficBtn.getAttribute('data-source') || '',
-        }, 'Solicitação de tráfego zerada.');
+        }, 'Solicitação de tráfego cancelada.');
       } catch (err) {
-        showErrorToast(err, 'Não foi possível zerar o tráfego deste item.');
+        showErrorToast(err, 'Não foi possível cancelar o tráfego deste item.');
       }
       return;
     }
