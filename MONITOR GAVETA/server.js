@@ -42,13 +42,12 @@ const inflight = new Map();
 const DATA_DIR = path.join(__dirname, 'data');
 const ARTISTS_STORE_PATH = path.join(DATA_DIR, 'artists.json');
 const GAVETA_REQUESTS_STORE_PATH = path.join(DATA_DIR, 'gaveta-requests.json');
-const GAVETA_APPS_SCRIPT_FALLBACK_URL = 'https://script.google.com/macros/s/AKfycbyDTL4Dj32cUmr0ee2VNtRZlIZlV8bJV4x2uOgortI7mvWSDvkHo3BAhPsYhOtb9n3b/exec';
 let artistsWriteQueue = Promise.resolve();
 let gavetaRequestsWriteQueue = Promise.resolve();
 const supabaseEnabled = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const supabaseBaseUrl = SUPABASE_URL ? SUPABASE_URL.replace(/\/$/, '') : '';
 const supabaseTablePath = `/rest/v1/${encodeURIComponent(SUPABASE_ARTISTS_TABLE)}`;
-const gavetaAppsScriptUrl = String(GAVETA_APPS_SCRIPT_URL || GAVETA_APPS_SCRIPT_FALLBACK_URL).trim();
+const gavetaAppsScriptUrl = String(GAVETA_APPS_SCRIPT_URL || '').trim();
 
 function gavetaTaskSignature(task = {}) {
   return [task.type || '', task.artistName || '', task.itemTitle || '', Number(task.milestone || 0)]
@@ -87,7 +86,7 @@ function writeGavetaRequestsStoreQueued(items = []) {
 
 async function postToGavetaAppsScript(payload) {
   if (!gavetaAppsScriptUrl) {
-    throw new Error('GAVETA_APPS_SCRIPT_URL ausente no backend.');
+    throw new Error('GAVETA_APPS_SCRIPT_URL ausente no backend. Defina a URL /exec da Web App publicada no Render.');
   }
 
   const res = await fetch(gavetaAppsScriptUrl, {
@@ -1028,16 +1027,55 @@ app.post('/api/gaveta/requests', async (req, res) => {
   }
 });
 
+app.get('/api/gaveta/health', async (_req, res) => {
+  try {
+    const taskId = `health-${Date.now()}`;
+    const folderId = String(GAVETA_DRIVE_FOLDER_ID || '').trim();
+    const probe = await postToGavetaAppsScript({
+      action: 'uploadGavetaAsset',
+      taskId,
+      artist: 'GAVETA_HEALTHCHECK',
+      title: 'Drive write probe',
+      fileName: `gaveta-health-${Date.now()}.txt`,
+      mimeType: 'text/plain',
+      dataUrl: 'data:text/plain;base64,R0FWRVRBX0hFQUxUSENIRUNL',
+      folderId,
+    });
+
+    return res.json({
+      ok: true,
+      service: 'gaveta-upload-health',
+      appsScriptConfigured: Boolean(gavetaAppsScriptUrl),
+      driveWrite: true,
+      taskId,
+      file: {
+        driveFileId: probe?.file?.driveFileId || '',
+        driveUrl: probe?.file?.driveUrl || probe?.file?.webViewLink || '',
+      },
+      ts: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      service: 'gaveta-upload-health',
+      appsScriptConfigured: Boolean(gavetaAppsScriptUrl),
+      driveWrite: false,
+      error: error.message,
+      ts: new Date().toISOString(),
+    });
+  }
+});
+
 app.post('/api/gaveta/upload', async (req, res) => {
   try {
-    const taskId = String(req.body?.taskId || '').trim();
+    const taskId = String(req.body?.taskId || `upload-${Date.now()}`).trim();
     const artistName = String(req.body?.artistName || '').trim();
     const itemTitle = String(req.body?.itemTitle || '').trim();
     const files = Array.isArray(req.body?.files) ? req.body.files : [];
     const folderId = String(req.body?.folderId || GAVETA_DRIVE_FOLDER_ID || '').trim();
 
-    if (!taskId || !artistName || !itemTitle) {
-      return res.status(400).json({ ok: false, error: 'taskId, artistName e itemTitle sao obrigatorios.' });
+    if (!artistName || !itemTitle) {
+      return res.status(400).json({ ok: false, error: 'artistName e itemTitle sao obrigatorios.' });
     }
     if (!files.length) {
       return res.status(400).json({ ok: false, error: 'Nenhum arquivo enviado.' });
@@ -1075,7 +1113,7 @@ app.post('/api/gaveta/upload', async (req, res) => {
       return res.status(502).json({ ok: false, error: 'Falha no upload para o Drive. Verifique Apps Script e pasta.' });
     }
 
-    return res.json({ ok: true, uploaded });
+    return res.json({ ok: true, taskId, uploaded });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
   }
