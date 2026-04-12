@@ -250,7 +250,7 @@
     <div class="actions">
       <div class="chip" id="lastSync">Carregando...</div>
       <button class="btn dark" id="refreshBtn">Atualizar agora</button>
-      <button class="btn dark" id="artBtn">Artes <span id="artPendingCount">0</span></button>
+      <button class="btn dark" id="artBtn">Artes</button>
       <button class="btn dark" id="exportBtn">Exportar lista</button>
       <button class="btn dark" id="importBtn">Importar lista</button>
       <button class="btn dark" id="manageBtn">Artistas</button>
@@ -1659,6 +1659,7 @@
   }
 
   function renderArtIndicators() {
+    if (!artPendingCount) return;
     const pending = artTasks.filter(t => t.status === 'pending' || t.status === 'progress').length;
     artPendingCount.textContent = String(pending);
   }
@@ -1966,6 +1967,7 @@
             <input type="file" accept="image/*,video/*" data-upload-delivery="${esc(task.id)}" multiple style="display:none">
           </label>
           <button class="btn dark sm" data-send-delivery="${esc(task.id)}">Subir artes no Drive</button>
+          ${requested ? `<button class="btn sm reset-shortcut" data-cancel-delivery="${esc(task.id)}">Cancelar entrega</button>` : ''}
           ${(task.assets || []).map((asset, i) => {
             const href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl || '';
             if (!href) return '';
@@ -2040,6 +2042,43 @@
             message: err.message || 'Nao foi possivel enviar as artes.',
           });
           alert((err.message || 'Nao foi possivel enviar as artes.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
+        }
+      });
+    });
+
+    artTasksList.querySelectorAll('[data-cancel-delivery]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-cancel-delivery');
+        const selectedTask = artTasks.find(t => t.id === id);
+        if (!selectedTask || !isTaskRequested(selectedTask)) return;
+
+        const confirmed = window.confirm(`Cancelar entrega de ${selectedTask.artistName || 'Artista'} - ${selectedTask.itemTitle || 'Item'}?`);
+        if (!confirmed) return;
+
+        try {
+          btn.disabled = true;
+          btn.textContent = 'Cancelando...';
+          const result = await clearGavetaRequestByTask(selectedTask);
+          if (Array.isArray(result?.requests)) {
+            remoteRequests = result.requests;
+          }
+          selectedTask.requested = false;
+          selectedTask.calendarEventId = '';
+          selectedTask.upstreamTaskId = '';
+          if (selectedTask.status !== 'done') selectedTask.status = 'pending';
+          saveArtTasks();
+
+          const warnings = Array.isArray(result?.cancellationSyncWarnings) ? result.cancellationSyncWarnings : [];
+          if (warnings.length) {
+            showToast('Entrega cancelada no painel, mas agenda não confirmou remoção automática.', 'warn');
+          } else {
+            showToast('Entrega cancelada com sucesso.', 'success');
+          }
+          renderArtTasks();
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Cancelar entrega';
+          showErrorToast(err, 'Não foi possível cancelar esta entrega.');
         }
       });
     });
