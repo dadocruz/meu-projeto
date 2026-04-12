@@ -1026,7 +1026,7 @@ app.post('/api/gaveta/requests', async (req, res) => {
       return res.json({ ok: true, request: existing, duplicated: true });
     }
 
-    const dueDate = String(req.body?.dueDate || '').trim() || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const dueDate = String(req.body?.dueDate || '').trim() || new Date().toISOString().slice(0, 10);
     const priority = task.demandStatus === 'do' ? 'alta' : 'media';
     let created = null;
     try {

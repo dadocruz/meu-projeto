@@ -32,6 +32,7 @@
     .chip{padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--muted);font-size:11px;white-space:nowrap}
     .btn{border:0;border-radius:11px;padding:10px 16px;font-weight:800;font-size:13px;cursor:pointer;transition:.14s}
     .btn:hover{transform:translateY(-1px);filter:brightness(1.12)}
+    .btn:disabled{opacity:.55;cursor:not-allowed;filter:none;transform:none}
     .btn.red{background:#ef233c;color:#fff;box-shadow:0 5px 18px rgba(239,35,60,.38)}
     .btn.dark{background:rgba(255,255,255,.06);color:#fff;border:1px solid var(--line2)}
     .btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
@@ -51,7 +52,7 @@
     .menu-drawer-footer .btn{flex:1}
 
     .wrap{padding-top:20px;padding-bottom:40px}
-    .layout{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:18px;align-items:start}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
     .left-col{min-width:0;display:flex;flex-direction:column;gap:20px}
 
     .traffic-section{display:flex;flex-direction:column;gap:10px}
@@ -73,7 +74,7 @@
     .section-head h2{margin:0 0 3px;font:800 21px/1 Syne,sans-serif}
     .section-head p{margin:0;color:var(--muted);font-size:12px}
 
-    .artist-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .artist-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,.038),rgba(255,255,255,.014));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
     .artist-card{overflow:hidden}
 
@@ -143,8 +144,14 @@
     .upload-status-head{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);font-weight:700}
     .upload-progress{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
     .upload-progress-fill{height:100%;width:0%;border-radius:inherit;background:linear-gradient(90deg,#1db954,#8cc8ff);transition:width .12s linear}
+    .btn.requested{background:rgba(65,211,125,.2);border:1px solid rgba(65,211,125,.45);color:#c5f8d9}
+    .btn.upload-shortcut{background:rgba(35,151,239,.2);border:1px solid rgba(35,151,239,.45);color:#d4ecff}
+    .task-group{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}
+    .task-group-title{padding:10px 12px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);border-bottom:1px solid var(--line)}
+    .task-group-title.requested{color:#86efac}
+    .task-group-title.pending{color:#ffcf80}
 
-    .ranking{position:sticky;top:88px}
+    .ranking{display:none}
     .ranking .inner{padding:16px}
     .ranking h3{margin:0 0 3px;font:800 18px/1 Syne,sans-serif}
     .rank-desc{margin:0 0 13px;color:var(--muted);font-size:11px;line-height:1.4}
@@ -199,9 +206,15 @@
     .auth-input{flex:1;padding:12px 13px;border-radius:11px;border:1px solid var(--line);background:#12121a;color:#fff;outline:none}
     .auth-input:focus{border-color:var(--line2)}
     .auth-error{margin-top:10px;color:#ff9cab;font-size:12px;min-height:16px}
+    .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:130;display:grid;gap:8px;max-width:min(92vw,360px)}
+    .toast{padding:11px 12px;border-radius:12px;border:1px solid var(--line2);background:rgba(12,12,16,.95);font-size:12px;line-height:1.4;box-shadow:0 12px 28px rgba(0,0,0,.32)}
+    .toast.success{border-color:rgba(134,239,172,.45);color:#d9fbe6}
+    .toast.error{border-color:rgba(255,153,171,.5);color:#ffd3db}
+    .toast.info{border-color:rgba(140,200,255,.45);color:#d7ebff}
 
-    @media(max-width:1500px){.artist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:980px){.layout{grid-template-columns:1fr}.ranking{position:static}.artist-grid{grid-template-columns:1fr}}
+    @media(max-width:1700px){.artist-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:1200px){.artist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:980px){.layout{grid-template-columns:1fr}.artist-grid{grid-template-columns:1fr}}
     @media(max-width:720px){
       .header-inner,.wrap{padding-left:14px;padding-right:14px}
       .artist-grid{grid-template-columns:1fr}
@@ -254,18 +267,8 @@
         <div id="trafficList"></div>
       </div>
       <div class="artist-grid" id="artistGrid"></div>
-      <div class="footer-note">By Dado Cruz.</div>
+      <div class="footer-note">Painel de acompanhamento e solicitação criativa.</div>
     </section>
-
-    <aside class="ranking">
-      <div class="card">
-        <div class="inner">
-          <h3>Previsão de Artes</h3>
-          <p class="rank-desc">Ordem de demanda por crescimento dos artistas cadastrados.</p>
-          <div class="rank-list" id="artForecastList"></div>
-        </div>
-      </div>
-    </aside>
   </div>
 </main>
 
@@ -290,16 +293,17 @@
 
 <aside class="drawer hidden" id="artDrawer">
   <div class="drawer-head">
-    <h3>Gestão de Artes</h3>
-    <p>Controle de entregas por metas: singles, ouvintes mensais e vídeos.</p>
+    <h3>Solicitações de Arte</h3>
+    <p>Pedido rápido por item: enviar para criação, anexar referência e acompanhar entrega.</p>
   </div>
   <div class="drawer-body">
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn dark sm" id="artTabPending">Pendentes</button>
-      <button class="btn dark sm" id="artTabProgress">Em andamento</button>
+      <button class="btn dark sm" id="artTabPending">Aguardando</button>
+      <button class="btn dark sm" id="artTabProgress">Produção</button>
       <button class="btn dark sm" id="artTabReady">Prontas</button>
       <button class="btn dark sm" id="artTabDone">Entregues</button>
       <button class="btn red sm" id="artAddManualBtn">+ Arte manual</button>
+      <button class="btn dark sm" id="resetRequestsBtn">Zerar solicitações</button>
     </div>
     <div class="flow-row" style="margin-top:10px">
       <span class="status-pill status-pending">Solicitada</span>
@@ -311,14 +315,6 @@
       <span class="status-pill status-done">Entregue</span>
     </div>
     <div id="artTasksList" class="media-list"></div>
-    <div class="gaveta-board">
-      <div class="traffic-head" style="margin-bottom:8px">
-        <h2>Solicitações da Gaveta</h2>
-        <span class="traffic-badge" id="gavetaRequestCount">0</span>
-      </div>
-      <div class="gaveta-meta" id="uploadReport">Relatório de uploads: 0 artes · 0 arquivos</div>
-      <div id="gavetaRequestsList"></div>
-    </div>
   </div>
   <div class="drawer-footer">
     <button class="btn dark" id="closeArt">Fechar</button>
@@ -359,6 +355,8 @@
     <button class="btn dark" id="closeManage">Fechar</button>
   </div>
 </aside>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
 
 <script>
   const BACKEND_PROD_URL = 'https://gaveta-monitor.onrender.com';
@@ -424,6 +422,12 @@
     });
   }
 
+  async function clearGavetaRequests() {
+    return fetchBackendJson('/api/gaveta/requests', {
+      method: 'DELETE',
+    });
+  }
+
   function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -431,6 +435,21 @@
       reader.onerror = () => reject(new Error(`Falha ao ler ${file.name || 'arquivo'}.`));
       reader.readAsDataURL(file);
     });
+  }
+
+  function extFromFileName(name) {
+    const safe = String(name || '').trim();
+    const dot = safe.lastIndexOf('.');
+    if (dot < 0) return 'png';
+    const ext = safe.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, '');
+    return ext || 'png';
+  }
+
+  function normalizeSlotFileName(task, file, slot) {
+    const artist = String(task.artistName || 'artista').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'artista';
+    const item = String(task.itemTitle || 'arte').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'arte';
+    const ext = extFromFileName(file?.name);
+    return `${artist}-${item}-${slot}.${ext}`;
   }
 
   function postGavetaUpload(payload, onProgress) {
@@ -567,14 +586,41 @@
   const artTabReady = qs('artTabReady');
   const artTabDone = qs('artTabDone');
   const artAddManualBtn = qs('artAddManualBtn');
+  const resetRequestsBtn = qs('resetRequestsBtn');
   const formError = qs('formError');
   const refreshBtn = qs('refreshBtn');
+  const toastWrap = qs('toastWrap');
   let artistsCloudSyncQueue = Promise.resolve();
   let artTasks = [];
   const uploadStates = new Map();
   let remoteRequests = [];
   let artActiveTab = 'pending';
   let artArtistFilter = '';
+  let artTaskFocusId = '';
+
+  function showToast(message, type = 'info') {
+    if (!toastWrap || !message) return;
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = String(message);
+    toastWrap.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(6px)';
+      setTimeout(() => el.remove(), 180);
+    }, 2800);
+  }
+
+  function taskSignatureFromParts(type, artistName, itemTitle, milestone) {
+    return [type || '', artistName || '', itemTitle || '', Number(milestone || 0)].join('|').toLowerCase();
+  }
+
+  function hasRequestedSignature(type, artistName, itemTitle, milestone) {
+    const signature = taskSignatureFromParts(type, artistName, itemTitle, milestone);
+    const local = artTasks.some(task => String(task.signature || '') === signature && isTaskRequested(task));
+    const remote = remoteRequests.some(req => String(req.signature || '') === signature);
+    return local || remote;
+  }
 
   function getLastFullRefresh() {
     return Number(localStorage.getItem(LAST_FULL_REFRESH_KEY) || 0);
@@ -1006,6 +1052,16 @@
     try {
       const data = await fetchGavetaRequests();
       remoteRequests = Array.isArray(data.requests) ? data.requests : [];
+      const remoteSignatures = new Set(remoteRequests.map(req => String(req.signature || '').trim()).filter(Boolean));
+
+      artTasks.forEach(task => {
+        const sig = String(task.signature || taskSignature(task));
+        const existsRemote = remoteSignatures.has(sig);
+        if (!existsRemote && task.status !== 'done') {
+          task.requested = false;
+          if (task.status === 'progress') task.status = 'pending';
+        }
+      });
 
       remoteRequests.forEach(req => {
         const signature = String(req.signature || '').trim();
@@ -1041,11 +1097,25 @@
     const payload = {
       ...task,
       requested: true,
-      dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      requestDetails: {
+        type: task.type || 'manual',
+        artistName: task.artistName || '',
+        itemTitle: task.itemTitle || '',
+        metricLabel: task.metricLabel || '',
+        currentValue: Number(task.currentValue || 0),
+        milestone: Number(task.milestone || 0),
+        sourceUrl: task.sourceUrl || '',
+        coverUrl: task.coverUrl || '',
+        note: task.note || '',
+      },
+      dueDate: new Date().toISOString().slice(0, 10),
       calendarId: GAVETA_CALENDAR_ID,
     };
 
     const data = await createGavetaRequest(payload);
+    if (!data?.request?.calendarEventId) {
+      throw new Error('Agenda nao confirmou o evento. Tente novamente.');
+    }
     task.requested = true;
     if (task.status === 'pending') task.status = 'progress';
     if (data?.request?.calendarEventId) task.calendarEventId = data.request.calendarEventId;
@@ -1172,7 +1242,7 @@
     if (status === 'pending') return 'Pendente';
     if (status === 'progress') return 'Em andamento';
     if (status === 'ready') return 'Pronta';
-    return 'Entregue';
+    return 'Arte disponivel';
   }
 
   function nextStatus(status) {
@@ -1298,7 +1368,7 @@
     const assets = artTasks
       .filter(task => String(task.artistName || '').trim() === artistName && (task.status === 'ready' || task.status === 'done'))
       .flatMap(task => Array.isArray(task.assets) ? task.assets : [])
-      .filter(asset => asset?.dataUrl);
+      .filter(asset => asset && (asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl));
 
     if (!assets.length) {
       alert('Nenhum arquivo pronto para download neste artista.');
@@ -1307,9 +1377,10 @@
 
     assets.forEach((asset, i) => {
       const a = document.createElement('a');
-      a.href = asset.dataUrl;
+      a.href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl;
       a.download = asset.name || `${artistName.replace(/\s+/g, '-').toLowerCase()}-${i + 1}`;
       a.rel = 'noopener';
+      if (!asset.dataUrl) a.target = '_blank';
       a.click();
     });
   }
@@ -1357,17 +1428,19 @@
   }
 
   function renderArtTasks() {
-    const filtered = artTasks.filter(t => {
-      if (t.status !== artActiveTab) return false;
-      if (!artArtistFilter) return true;
-      return String(t.artistName || '').trim() === artArtistFilter;
-    });
-    if (!filtered.length) {
-      artTasksList.innerHTML = `<div class="empty">${artArtistFilter ? `Nenhuma arte nesta coluna para ${esc(artArtistFilter)}.` : 'Nenhuma arte nesta coluna.'}</div>`;
+    if (!artTaskFocusId) {
+      artTasksList.innerHTML = '<div class="empty">Clique em Pedir arte no single ou video para abrir o pedido deste item.</div>';
       return;
     }
 
-    artTasksList.innerHTML = filtered.map(task => `
+    const filtered = artTasks.filter(t => t.id === artTaskFocusId);
+    if (!filtered.length) {
+      artTasksList.innerHTML = '<div class="empty">Item selecionado nao encontrado.</div>';
+      return;
+    }
+
+    function renderTaskCard(task) {
+      return `
       <div class="art-task">
         <div class="art-task-head">
           <div class="art-task-main">
@@ -1378,18 +1451,21 @@
               ${task.sourceUrl ? `<div class="art-task-meta"><a href="${esc(task.sourceUrl)}" target="_blank" rel="noopener">Abrir origem</a></div>` : ''}
             </div>
           </div>
-          <button class="status-pill status-${esc(task.status)}" data-status="${esc(task.id)}">${statusLabel(task.status)}</button>
+          <span class="status-pill status-${esc(task.status)}">${statusLabel(task.status)}</span>
         </div>
         <div class="art-row">
-          <button class="btn dark sm" data-request="${esc(task.id)}">${isTaskRequested(task) ? 'Solicitada' : 'Solicitar arte'}</button>
-          <input type="file" accept="image/*,video/mp4,video/quicktime" multiple data-upload="${esc(task.id)}">
+          <button class="btn dark sm" data-request="${esc(task.id)}" ${isTaskRequested(task) ? 'disabled' : ''}>${isTaskRequested(task) ? 'Pedido enviado' : 'Enviar solicitação'}</button>
+          <label class="btn dark sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            Anexar capa (opcional)
+            <input type="file" accept="image/*" data-upload-cover="${esc(task.id)}" style="display:none">
+          </label>
+          <button class="btn dark sm" data-send-cover="${esc(task.id)}">Enviar capa</button>
           ${(task.assets || []).map((asset, i) => {
             const href = asset.dataUrl || asset.downloadUrl || asset.webViewLink || asset.driveUrl || '';
             if (!href) return '';
             const label = asset.driveUrl || asset.webViewLink ? `Drive ${i + 1}` : `Baixar ${i + 1}`;
             return `<a class="btn dark sm" href="${esc(href)}" target="_blank" rel="noopener" download="${esc(asset.name || `arte-${i + 1}`)}">${label}</a>`;
           }).join('')}
-          <button class="btn dark sm" data-delete="${esc(task.id)}">Excluir</button>
         </div>
         <div class="upload-status hidden" id="upload-state-${esc(task.id)}">
           <div class="upload-status-head">
@@ -1398,44 +1474,43 @@
           </div>
           <div class="upload-progress"><div class="upload-progress-fill" data-upload-fill style="width:0%"></div></div>
         </div>
+        <div class="art-task-meta">Status do pedido: ${isTaskRequested(task) ? 'pedido enviado para agenda' : 'aguardando envio'}</div>
+        <div class="art-task-meta">Preencha se quiser: mensagem para equipe e capa de referencia.</div>
+        <textarea class="input" rows="2" data-note="${esc(task.id)}" placeholder="Mensagem para a equipe (opcional)">${esc(task.note || '')}</textarea>
         <div class="art-row">
-          <input class="input" placeholder="Link da pasta/arquivo no Google Drive" value="${esc(task.driveUrl || '')}" data-drive="${esc(task.id)}">
-          ${task.driveUrl ? `<a class="btn dark sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Abrir Drive</a>` : ''}
+          <button class="btn red sm" data-submit-request="${esc(task.id)}" ${isTaskRequested(task) ? 'disabled' : ''}>Enviar solicitação</button>
+          ${task.driveUrl ? `<a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a>` : ''}
         </div>
-        <textarea class="input" rows="2" data-note="${esc(task.id)}" placeholder="Observacoes">${esc(task.note || '')}</textarea>
+        ${task.driveUrl ? `<div class="art-row"><a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a><button class="btn dark sm" data-copy-drive="${esc(task.id)}">Copiar link</button></div>` : ''}
       </div>
-    `).join('');
+    `;
+    }
+
+    artTasksList.innerHTML = `<section class="task-group"><div class="task-group-title requested">Pedido selecionado</div>${filtered.map(renderTaskCard).join('')}</section>`;
 
     artTasksList.querySelectorAll('[data-request]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-request');
         const task = artTasks.find(t => t.id === id);
         if (!task) return;
+        artTaskFocusId = task.id;
+        artActiveTab = task.status || 'pending';
+        renderArtTasks();
+      });
+    });
+
+    artTasksList.querySelectorAll('[data-submit-request]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-submit-request');
+        const task = artTasks.find(t => t.id === id);
+        if (!task || isTaskRequested(task)) return;
         try {
           await requestTaskFromTask(task);
+          saveArtTasks();
+          showToast('Pedido enviado e confirmado na agenda.', 'success');
         } catch (err) {
-          alert(err.message || 'Não foi possível enviar solicitação para agenda.');
-          return;
+          alert(err.message || 'Falha ao enviar solicitação para agenda.');
         }
-        saveArtTasks();
-      });
-    });
-
-    artTasksList.querySelectorAll('[data-status]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-status');
-        const task = artTasks.find(t => t.id === id);
-        if (!task) return;
-        task.status = nextStatus(task.status);
-        saveArtTasks();
-      });
-    });
-
-    artTasksList.querySelectorAll('[data-delete]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-delete');
-        artTasks = artTasks.filter(t => t.id !== id);
-        saveArtTasks();
       });
     });
 
@@ -1449,52 +1524,72 @@
       });
     });
 
-    artTasksList.querySelectorAll('[data-upload]').forEach(input => {
-      input.addEventListener('change', async () => {
-        const files = Array.from(input.files || []);
-        if (!files.length) return;
-        const id = input.getAttribute('data-upload');
+    artTasksList.querySelectorAll('[data-send-cover]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-send-cover');
         const task = artTasks.find(t => t.id === id);
         if (!task) return;
 
+        const fileInput = artTasksList.querySelector(`[data-upload-cover="${id}"]`);
+        const pickedFile = fileInput?.files?.[0] || null;
+        if (!pickedFile) {
+          alert('Anexe a capa antes de enviar.');
+          return;
+        }
+
+        const renamed = new File([pickedFile], normalizeSlotFileName(task, pickedFile, 'cover'), { type: pickedFile.type || 'application/octet-stream' });
+
         try {
+          if (!isTaskRequested(task)) {
+            await requestTaskFromTask(task);
+          }
+
           setUploadState(task.id, {
             phase: 'preparing',
             progress: 0,
-            message: `Preparando ${files.length} arquivo(s)...`,
+            message: 'Preparando capa...',
           });
 
-          const uploaded = await uploadGavetaAssets(task, files, state => setUploadState(task.id, state));
+          const uploaded = await uploadGavetaAssets(task, [renamed], state => setUploadState(task.id, state));
           const remoteAssets = Array.isArray(uploaded.uploaded) ? uploaded.uploaded : [];
           task.assets = [...(Array.isArray(task.assets) ? task.assets : []), ...remoteAssets].slice(0, 12);
           if (!task.driveUrl && remoteAssets[0]?.driveUrl) task.driveUrl = remoteAssets[0].driveUrl;
           task.status = 'done';
           task.requested = true;
+          artActiveTab = 'done';
+          artArtistFilter = '';
           saveArtTasks();
           setUploadState(task.id, {
             phase: 'done',
             progress: 100,
-            message: `Concluído. ${remoteAssets.length} arquivo(s) no Drive.`,
+            message: 'Capa enviada com sucesso.',
           });
+          showToast('Capa enviada para o Drive. Link pronto para compartilhar.', 'success');
           setTimeout(() => clearUploadState(task.id), 5000);
+          if (fileInput) fileInput.value = '';
         } catch (err) {
           setUploadState(task.id, {
             phase: 'error',
             progress: 0,
-            message: err.message || 'Falha no upload para o Drive.',
+            message: err.message || 'Nao foi possivel enviar a capa.',
           });
-          alert((err.message || 'Falha no upload para o Drive.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
+          alert((err.message || 'Nao foi possivel enviar a capa.') + ' Configure GAVETA_APPS_SCRIPT_URL no backend e tente novamente.');
         }
       });
     });
 
-    artTasksList.querySelectorAll('[data-drive]').forEach(field => {
-      field.addEventListener('change', () => {
-        const id = field.getAttribute('data-drive');
+    artTasksList.querySelectorAll('[data-copy-drive]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-copy-drive');
         const task = artTasks.find(t => t.id === id);
-        if (!task) return;
-        task.driveUrl = field.value.trim();
-        saveArtTasks();
+        const link = String(task?.driveUrl || '').trim();
+        if (!link) return;
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast('Link do Drive copiado.', 'info');
+        } catch {
+          showToast('Nao foi possivel copiar automaticamente.', 'error');
+        }
       });
     });
   }
@@ -1574,6 +1669,8 @@
   function singleRow(s) {
     const hasPlays = s.plays !== null && s.plays !== undefined;
     const demand = computeDemandStatus(Number(s.plays || 0), 50000);
+    const milestone = Number(demand.currentTarget || 0);
+    const requested = hasRequestedSignature('single', s.artistName || '', s.title || 'Single', milestone);
     return `
       <div class="media-row">
         <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
@@ -1588,7 +1685,8 @@
           ${hasPlays
             ? `<div class="media-num">${compact(s.plays)}</div><div class="media-lbl">streams</div>`
             : '<div class="no-data">--</div>'}
-          <button class="btn dark sm" data-quick-request="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${Number(demand.currentTarget || 0)}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}">Solicitar arte</button>
+          <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}" ${requested ? 'disabled' : ''}>${requested ? 'Pedido enviado' : 'Pedir arte'}</button>
+          <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(s.artistName || '')}" data-title="${esc(s.title || 'Single')}" data-type="single" data-metric="Plays do single" data-current="${Number(s.plays || 0)}" data-milestone="${milestone}" data-cover="${esc(s.coverUrl || '')}" data-source="${esc(s.spotifyUrl || '')}">Subir artes</button>
         </div>
       </div>
     `;
@@ -1596,6 +1694,8 @@
 
   function videoRow(v) {
     const demand = computeDemandStatus(Number(v.views || 0), 50000);
+    const milestone = Number(demand.currentTarget || 0);
+    const requested = hasRequestedSignature('youtube', v.artistName || '', v.title || 'Video', milestone);
     return `
       <div class="media-row">
         <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
@@ -1610,7 +1710,8 @@
         <div class="media-stat">
           <div class="media-num">${compact(v.views)}</div>
           <div class="media-lbl">views</div>
-          <button class="btn dark sm" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${Number(demand.currentTarget || 0)}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Solicitar arte</button>
+          <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}" ${requested ? 'disabled' : ''}>${requested ? 'Pedido enviado' : 'Pedir arte'}</button>
+          <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(v.artistName || '')}" data-title="${esc(v.title || 'Video')}" data-type="youtube" data-metric="Views do video" data-current="${Number(v.views || 0)}" data-milestone="${milestone}" data-cover="${esc(v.thumbnail || '')}" data-source="${esc(v.youtubeUrl || '')}">Subir artes</button>
         </div>
       </div>
     `;
@@ -1633,6 +1734,7 @@
     const singles = Array.isArray(sp.singles) ? sp.singles : [];
     const topTracks = Array.isArray(sp.topTracks) ? sp.topTracks : [];
     const vids = Array.isArray(yt.latestVideos) ? yt.latestVideos : [];
+    const trackDateByTitle = new Map(topTracks.map(t => [String(t?.title || '').trim().toLowerCase(), t?.releaseDate || '']));
 
     return `
       <article class="card artist-card">
@@ -1666,7 +1768,13 @@
               </div>
             </div>
             <div class="media-list">
-              ${(singles.length ? singles.map(single => singleRow({ ...single, artistName: a.artistName })).join('') : '').trim() || (topTracks.length ? topTracks.map(t => `
+              ${(singles.length ? singles.map(single => {
+                const titleKey = String(single?.title || '').trim().toLowerCase();
+                const fallbackDate = trackDateByTitle.get(titleKey) || '';
+                return singleRow({ ...single, artistName: a.artistName, releaseDate: single.releaseDate || fallbackDate || '' });
+              }).join('') : '').trim() || (topTracks.length ? topTracks.map(t => {
+                const requested = hasRequestedSignature('single', a.artistName || '', t.title || 'Track', 50000);
+                return `
                 <div class="media-row">
                   <a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
                     <img class="media-thumb" src="${esc(t.imageUrl || '')}" alt="${esc(t.title || 'Track')}" loading="lazy">
@@ -1677,10 +1785,12 @@
                   </div>
                   <div class="media-stat">
                     <div class="media-num">${compact(t.plays ?? t.streams ?? null)}</div><div class="media-lbl">streams</div>
-                    <button class="btn dark sm" data-quick-request="1" data-artist="${esc(a.artistName || '')}" data-title="${esc(t.title || 'Track')}" data-type="single" data-metric="Streams do track" data-current="${Number(t.plays ?? t.streams ?? 0)}" data-milestone="50000" data-cover="${esc(t.imageUrl || a.imageUrl || '')}" data-source="${esc(t.spotifyUrl || a.spotifyArtistUrl || '')}">Solicitar arte</button>
+                    <button class="btn sm ${requested ? 'requested' : 'dark'}" data-quick-request="1" data-artist="${esc(a.artistName || '')}" data-title="${esc(t.title || 'Track')}" data-type="single" data-metric="Streams do track" data-current="${Number(t.plays ?? t.streams ?? 0)}" data-milestone="50000" data-cover="${esc(t.imageUrl || a.imageUrl || '')}" data-source="${esc(t.spotifyUrl || a.spotifyArtistUrl || '')}" ${requested ? 'disabled' : ''}>${requested ? 'Pedido enviado' : 'Pedir arte'}</button>
+                    <button class="btn sm upload-shortcut" data-quick-upload="1" data-artist="${esc(a.artistName || '')}" data-title="${esc(t.title || 'Track')}" data-type="single" data-metric="Streams do track" data-current="${Number(t.plays ?? t.streams ?? 0)}" data-milestone="50000" data-cover="${esc(t.imageUrl || a.imageUrl || '')}" data-source="${esc(t.spotifyUrl || a.spotifyArtistUrl || '')}">Subir artes</button>
                   </div>
                 </div>
-              `).join('') : '<div class="empty">Sem singles/top tracks.</div>')}
+              `;
+              }).join('') : '<div class="empty">Sem singles/top tracks.</div>')}
             </div>
           </div>
 
@@ -1806,6 +1916,7 @@
   qs('addBtn').addEventListener('click', () => openDrawer(addDrawer));
   artBtn.addEventListener('click', () => {
     artArtistFilter = '';
+    artTaskFocusId = '';
     openDrawer(artDrawer);
     renderArtTasks();
   });
@@ -1820,10 +1931,32 @@
   backdrop.addEventListener('click', closeDrawers);
   qs('saveArtist').addEventListener('click', saveArtist);
 
-  artTabPending.addEventListener('click', () => { artActiveTab = 'pending'; artArtistFilter = ''; renderArtTasks(); });
-  artTabProgress.addEventListener('click', () => { artActiveTab = 'progress'; artArtistFilter = ''; renderArtTasks(); });
-  artTabReady.addEventListener('click', () => { artActiveTab = 'ready'; artArtistFilter = ''; renderArtTasks(); });
-  artTabDone.addEventListener('click', () => { artActiveTab = 'done'; artArtistFilter = ''; renderArtTasks(); });
+  artTabPending.addEventListener('click', () => { artActiveTab = 'pending'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabProgress.addEventListener('click', () => { artActiveTab = 'progress'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabReady.addEventListener('click', () => { artActiveTab = 'ready'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+  artTabDone.addEventListener('click', () => { artActiveTab = 'done'; artArtistFilter = ''; artTaskFocusId = ''; renderArtTasks(); });
+
+  resetRequestsBtn?.addEventListener('click', async () => {
+    const confirmReset = window.confirm('Deseja zerar as solicitacoes e atualizar o painel?');
+    if (!confirmReset) return;
+    try {
+      await clearGavetaRequests();
+      remoteRequests = [];
+      artTasks = artTasks.map(task => ({
+        ...task,
+        requested: false,
+        calendarEventId: '',
+        upstreamTaskId: '',
+        status: task.status === 'done' ? 'done' : 'pending',
+      }));
+      artTaskFocusId = '';
+      saveArtTasks();
+      await loadDashboard({ forceRefresh: true });
+      showToast('Solicitacoes zeradas e painel atualizado.', 'success');
+    } catch (err) {
+      alert(err.message || 'Nao foi possivel zerar as solicitacoes agora.');
+    }
+  });
 
   artAddManualBtn.addEventListener('click', () => {
     const artistName = window.prompt('Nome do artista');
@@ -1881,6 +2014,7 @@
   menuArtBtn.addEventListener('click', () => {
     closeMenuDrawer();
     artArtistFilter = '';
+    artTaskFocusId = '';
     openDrawer(artDrawer);
     renderArtTasks();
   });
@@ -1889,6 +2023,38 @@
   menuImportBtn.addEventListener('click', () => { closeMenuDrawer(); qs('importInput').click(); });
 
   qs('artistGrid').addEventListener('click', async (event) => {
+    const uploadBtn = event.target.closest('[data-quick-upload]');
+    if (uploadBtn) {
+      const taskPayload = {
+        type: uploadBtn.getAttribute('data-type') || 'manual',
+        artistName: uploadBtn.getAttribute('data-artist') || 'Artista',
+        itemTitle: uploadBtn.getAttribute('data-title') || 'Solicitação',
+        currentValue: Number(uploadBtn.getAttribute('data-current') || 0),
+        milestone: Number(uploadBtn.getAttribute('data-milestone') || 0),
+        metricLabel: uploadBtn.getAttribute('data-metric') || 'Solicitação direta',
+        coverUrl: uploadBtn.getAttribute('data-cover') || '',
+        sourceUrl: uploadBtn.getAttribute('data-source') || '',
+        demandStatus: 'do',
+      };
+
+      ensureAutoTask(taskPayload);
+      const task = artTasks.find(t => String(t.signature || '') === taskSignature(taskPayload));
+      if (!task) return;
+
+      if (task.status === 'pending') {
+        artActiveTab = 'pending';
+      } else if (task.status === 'ready' || task.status === 'done') {
+        artActiveTab = task.status;
+      } else {
+        artActiveTab = 'progress';
+      }
+      artArtistFilter = task.artistName || '';
+      artTaskFocusId = task.id;
+      openDrawer(artDrawer);
+      renderArtTasks();
+      return;
+    }
+
     const btn = event.target.closest('[data-quick-request]');
     if (!btn) return;
 
@@ -1909,10 +2075,14 @@
     if (!task) return;
 
     try {
-      await requestTaskFromTask(task);
+      if (!isTaskRequested(task)) {
+        await requestTaskFromTask(task);
+      }
       saveArtTasks();
-      artArtistFilter = task.artistName;
+      showToast('Pedido enviado e confirmado na agenda.', 'success');
+      artArtistFilter = '';
       artActiveTab = 'progress';
+      artTaskFocusId = task.id;
       openDrawer(artDrawer);
       renderArtTasks();
     } catch (err) {
