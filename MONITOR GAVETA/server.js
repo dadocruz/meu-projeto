@@ -44,6 +44,7 @@ const ARTISTS_STORE_PATH = path.join(DATA_DIR, 'artists.json');
 const GAVETA_REQUESTS_STORE_PATH = path.join(DATA_DIR, 'gaveta-requests.json');
 let artistsWriteQueue = Promise.resolve();
 let gavetaRequestsWriteQueue = Promise.resolve();
+const gavetaCreateInflight = new Map();
 const supabaseEnabled = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const supabaseBaseUrl = SUPABASE_URL ? SUPABASE_URL.replace(/\/$/, '') : '';
 const supabaseTablePath = `/rest/v1/${encodeURIComponent(SUPABASE_ARTISTS_TABLE)}`;
@@ -1049,60 +1050,75 @@ app.post('/api/gaveta/requests', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'artistName e itemTitle sao obrigatorios.' });
     }
 
-    const store = await readGavetaRequestsStore();
-    const existing = store.items.find(item => item.signature === signature && item.status !== 'done');
-    if (existing) {
-      return res.json({ ok: true, request: existing, duplicated: true });
+    if (gavetaCreateInflight.has(signature)) {
+      const existingInflight = await gavetaCreateInflight.get(signature);
+      return res.json({ ok: true, request: existingInflight, duplicated: true, inflight: true });
     }
 
-    const dueDate = String(req.body?.dueDate || '').trim() || new Date().toISOString().slice(0, 10);
-    const priority = task.demandStatus === 'do' ? 'alta' : 'media';
-    let created = null;
-    try {
-      created = await postToGavetaAppsScript({
-        action: 'createTask',
-        artist: artistName,
-        title: itemTitle,
-        description: buildAgendaBriefing(task),
-        priority,
+    const createPromise = (async () => {
+      const store = await readGavetaRequestsStore();
+      const existing = store.items.find(item => item.signature === signature && item.status !== 'done');
+      if (existing) return existing;
+
+      const dueDate = String(req.body?.dueDate || '').trim() || new Date().toISOString().slice(0, 10);
+      const priority = task.demandStatus === 'do' ? 'alta' : 'media';
+      let created = null;
+      try {
+        created = await postToGavetaAppsScript({
+          action: 'createTask',
+          artist: artistName,
+          title: itemTitle,
+          description: buildAgendaBriefing(task),
+          priority,
+          dueDate,
+          createCalendar: true,
+          calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
+          driveLink: String(task.driveUrl || '').trim(),
+        });
+      } catch (err) {
+        throw new Error(`Falha ao criar evento na agenda: ${String(err.message || err)}`);
+      }
+
+      const calendarEventId = String(created?.task?.calendarEventId || '');
+      const upstreamTaskId = String(created?.task?.id || '');
+      if (!calendarEventId) {
+        throw new Error('Agenda nao confirmou o evento. Solicitacao nao registrada.');
+      }
+
+      const requestItem = {
+        id: String(Date.now()),
+        taskId: String(task.id || ''),
+        upstreamTaskId,
+        signature,
+        type,
+        artistName,
+        itemTitle,
+        metricLabel: String(task.metricLabel || ''),
+        currentValue: Number(task.currentValue || 0),
+        milestone: Number(task.milestone || 0),
+        sourceUrl: String(task.sourceUrl || ''),
+        coverUrl: String(task.coverUrl || ''),
+        note: String(task.note || ''),
+        status: 'requested',
+        requestedAt: new Date().toISOString(),
         dueDate,
-        createCalendar: true,
-        calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
-        driveLink: String(task.driveUrl || '').trim(),
-      });
-    } catch (err) {
-      return res.status(502).json({ ok: false, error: `Falha ao criar evento na agenda: ${String(err.message || err)}` });
+        calendarEventId,
+        calendarError: '',
+      };
+
+      const nextItems = [...store.items, requestItem].slice(-2000);
+      await writeGavetaRequestsStoreQueued(nextItems);
+      return requestItem;
+    })();
+
+    gavetaCreateInflight.set(signature, createPromise);
+
+    try {
+      const requestItem = await createPromise;
+      return res.json({ ok: true, request: requestItem });
+    } finally {
+      gavetaCreateInflight.delete(signature);
     }
-
-    const calendarEventId = String(created?.task?.calendarEventId || '');
-    const upstreamTaskId = String(created?.task?.id || '');
-    if (!calendarEventId) {
-      return res.status(502).json({ ok: false, error: 'Agenda nao confirmou o evento. Solicitacao nao registrada.' });
-    }
-
-    const requestItem = {
-      id: String(Date.now()),
-      taskId: String(task.id || ''),
-      upstreamTaskId,
-      signature,
-      type,
-      artistName,
-      itemTitle,
-      metricLabel: String(task.metricLabel || ''),
-      currentValue: Number(task.currentValue || 0),
-      milestone: Number(task.milestone || 0),
-      sourceUrl: String(task.sourceUrl || ''),
-      coverUrl: String(task.coverUrl || ''),
-      status: 'requested',
-      requestedAt: new Date().toISOString(),
-      dueDate,
-      calendarEventId,
-      calendarError: '',
-    };
-
-    const nextItems = [...store.items, requestItem].slice(-2000);
-    await writeGavetaRequestsStoreQueued(nextItems);
-    return res.json({ ok: true, request: requestItem });
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
   }

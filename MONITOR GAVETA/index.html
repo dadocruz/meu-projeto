@@ -594,6 +594,7 @@
   let artTasks = [];
   const uploadStates = new Map();
   let remoteRequests = [];
+  const requestSubmittingIds = new Set();
   let artActiveTab = 'pending';
   let artArtistFilter = '';
   let artTaskFocusId = '';
@@ -615,24 +616,50 @@
     return [type || '', artistName || '', itemTitle || '', Number(milestone || 0)].join('|').toLowerCase();
   }
 
-  function taskLooseSignatureFromParts(type, artistName, itemTitle) {
-    return [type || '', artistName || '', itemTitle || ''].join('|').toLowerCase();
+  function normalizeSigText(value) {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
   }
 
-  function hasRequestedSignature(type, artistName, itemTitle, milestone) {
+  function taskLooseSignatureFromParts(type, artistName, itemTitle) {
+    return [normalizeSigText(type), normalizeSigText(artistName), normalizeSigText(itemTitle)].join('|');
+  }
+
+  function normalizeSourceUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return '';
+    try {
+      const u = new URL(raw);
+      const host = String(u.hostname || '').replace(/^www\./i, '').toLowerCase();
+      const pathname = String(u.pathname || '').replace(/\/+$/, '').toLowerCase();
+      return `${host}${pathname}`;
+    } catch {
+      return raw.toLowerCase();
+    }
+  }
+
+  function hasRequestedSignature(type, artistName, itemTitle, milestone, sourceUrl) {
     const signature = taskSignatureFromParts(type, artistName, itemTitle, milestone);
     const loose = taskLooseSignatureFromParts(type, artistName, itemTitle);
+    const source = normalizeSourceUrl(sourceUrl);
 
     const local = artTasks.some(task => {
       const exact = String(task.signature || '') === signature;
       const looseTask = taskLooseSignatureFromParts(task.type, task.artistName, task.itemTitle) === loose;
-      return (exact || looseTask) && isTaskRequested(task);
+      const sourceTask = source && normalizeSourceUrl(task.sourceUrl) === source;
+      return (exact || looseTask || sourceTask) && isTaskRequested(task);
     });
 
     const remote = remoteRequests.some(req => {
       const exact = String(req.signature || '') === signature;
       const looseReq = taskLooseSignatureFromParts(req.type, req.artistName, req.itemTitle) === loose;
-      return exact || looseReq;
+      const sourceReq = source && normalizeSourceUrl(req.sourceUrl) === source;
+      return exact || looseReq || sourceReq;
     });
 
     return local || remote;
@@ -1456,6 +1483,8 @@
     }
 
     function renderTaskCard(task) {
+      const submitting = requestSubmittingIds.has(task.id);
+      const requested = isTaskRequested(task);
       return `
       <div class="art-task">
         <div class="art-task-head">
@@ -1470,7 +1499,7 @@
           <span class="status-pill status-${esc(task.status)}">${statusLabel(task.status)}</span>
         </div>
         <div class="art-row">
-          <button class="btn dark sm" data-request="${esc(task.id)}" ${isTaskRequested(task) ? 'disabled' : ''}>${isTaskRequested(task) ? 'Pedido enviado' : 'Enviar solicitação'}</button>
+          <button class="btn dark sm" data-request="${esc(task.id)}" ${requested || submitting ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Enviar solicitação')}</button>
           <label class="btn dark sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
             Anexar capa (opcional)
             <input type="file" accept="image/*" data-upload-cover="${esc(task.id)}" style="display:none">
@@ -1490,11 +1519,11 @@
           </div>
           <div class="upload-progress"><div class="upload-progress-fill" data-upload-fill style="width:0%"></div></div>
         </div>
-        <div class="art-task-meta">Status do pedido: ${isTaskRequested(task) ? 'pedido enviado para agenda' : 'aguardando envio'}</div>
+        <div class="art-task-meta">Status do pedido: ${requested ? 'pedido enviado para agenda' : (submitting ? 'enviando solicitacao para agenda...' : 'aguardando envio')}</div>
         <div class="art-task-meta">Preencha se quiser: mensagem para equipe e capa de referencia.</div>
         <textarea class="input" rows="2" data-note="${esc(task.id)}" placeholder="Mensagem para a equipe (opcional)">${esc(task.note || '')}</textarea>
         <div class="art-row">
-          <button class="btn red sm" data-submit-request="${esc(task.id)}" ${isTaskRequested(task) ? 'disabled' : ''}>Enviar solicitação</button>
+          <button class="btn red sm" data-submit-request="${esc(task.id)}" ${requested || submitting ? 'disabled' : ''}>${requested ? 'Pedido enviado' : (submitting ? 'Enviando...' : 'Enviar solicitação')}</button>
           ${task.driveUrl ? `<a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a>` : ''}
         </div>
         ${task.driveUrl ? `<div class="art-row"><a class="btn requested sm" href="${esc(task.driveUrl)}" target="_blank" rel="noopener">Arte disponivel</a><button class="btn dark sm" data-copy-drive="${esc(task.id)}">Copiar link</button></div>` : ''}
@@ -1519,13 +1548,22 @@
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-submit-request');
         const task = artTasks.find(t => t.id === id);
-        if (!task || isTaskRequested(task)) return;
+        if (!task || isTaskRequested(task) || requestSubmittingIds.has(id)) return;
+
+        const noteField = artTasksList.querySelector(`[data-note="${id}"]`);
+        if (noteField) task.note = String(noteField.value || '').trim();
+
         try {
+          requestSubmittingIds.add(id);
+          renderArtTasks();
           await requestTaskFromTask(task);
           saveArtTasks();
           showToast('Pedido enviado e confirmado na agenda.', 'success');
         } catch (err) {
           alert(err.message || 'Falha ao enviar solicitação para agenda.');
+        } finally {
+          requestSubmittingIds.delete(id);
+          renderArtTasks();
         }
       });
     });
@@ -1686,7 +1724,7 @@
     const hasPlays = s.plays !== null && s.plays !== undefined;
     const demand = computeDemandStatus(Number(s.plays || 0), 50000);
     const milestone = Number(demand.currentTarget || 0);
-    const requested = hasRequestedSignature('single', s.artistName || '', s.title || 'Single', milestone);
+    const requested = hasRequestedSignature('single', s.artistName || '', s.title || 'Single', milestone, s.spotifyUrl || '');
     return `
       <div class="media-row">
         <a href="${esc(s.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
@@ -1711,7 +1749,7 @@
   function videoRow(v) {
     const demand = computeDemandStatus(Number(v.views || 0), 50000);
     const milestone = Number(demand.currentTarget || 0);
-    const requested = hasRequestedSignature('youtube', v.artistName || '', v.title || 'Video', milestone);
+    const requested = hasRequestedSignature('youtube', v.artistName || '', v.title || 'Video', milestone, v.youtubeUrl || '');
     return `
       <div class="media-row">
         <a href="${esc(v.youtubeUrl || '#')}" target="_blank" rel="noopener" title="Abrir no YouTube">
@@ -1789,7 +1827,7 @@
                 const fallbackDate = trackDateByTitle.get(titleKey) || '';
                 return singleRow({ ...single, artistName: a.artistName, releaseDate: single.releaseDate || fallbackDate || '' });
               }).join('') : '').trim() || (topTracks.length ? topTracks.map(t => {
-                const requested = hasRequestedSignature('single', a.artistName || '', t.title || 'Track', 50000);
+                const requested = hasRequestedSignature('single', a.artistName || '', t.title || 'Track', 50000, t.spotifyUrl || a.spotifyArtistUrl || '');
                 return `
                 <div class="media-row">
                   <a href="${esc(t.spotifyUrl || '#')}" target="_blank" rel="noopener" title="Abrir no Spotify">
@@ -2090,20 +2128,11 @@
     const task = artTasks.find(t => String(t.signature || '') === taskSignature(taskPayload));
     if (!task) return;
 
-    try {
-      if (!isTaskRequested(task)) {
-        await requestTaskFromTask(task);
-      }
-      saveArtTasks();
-      showToast('Pedido enviado e confirmado na agenda.', 'success');
-      artArtistFilter = '';
-      artActiveTab = 'progress';
-      artTaskFocusId = task.id;
-      openDrawer(artDrawer);
-      renderArtTasks();
-    } catch (err) {
-      alert(err.message || 'Falha ao enviar solicitação para agenda.');
-    }
+    artArtistFilter = '';
+    artActiveTab = 'pending';
+    artTaskFocusId = task.id;
+    openDrawer(artDrawer);
+    renderArtTasks();
   });
 
   setInterval(updateRefreshButtonState, 30000);
