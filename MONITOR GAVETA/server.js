@@ -1000,6 +1000,15 @@ app.get('/api/gaveta/requests', async (_req, res) => {
   }
 });
 
+app.delete('/api/gaveta/requests', async (_req, res) => {
+  try {
+    await writeGavetaRequestsStoreQueued([]);
+    return res.json({ ok: true, cleared: true, requests: [] });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 app.post('/api/gaveta/requests', async (req, res) => {
   try {
     const task = req.body?.task || {};
@@ -1019,12 +1028,9 @@ app.post('/api/gaveta/requests', async (req, res) => {
 
     const dueDate = String(req.body?.dueDate || '').trim() || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const priority = task.demandStatus === 'do' ? 'alta' : 'media';
-    let calendarEventId = '';
-    let upstreamTaskId = '';
-    let calendarError = '';
-
+    let created = null;
     try {
-      const created = await postToGavetaAppsScript({
+      created = await postToGavetaAppsScript({
         action: 'createTask',
         artist: artistName,
         title: itemTitle,
@@ -1035,10 +1041,14 @@ app.post('/api/gaveta/requests', async (req, res) => {
         calendarId: String(GAVETA_CALENDAR_ID || '').trim(),
         driveLink: String(task.driveUrl || '').trim(),
       });
-      calendarEventId = String(created?.task?.calendarEventId || '');
-      upstreamTaskId = String(created?.task?.id || '');
     } catch (err) {
-      calendarError = String(err.message || err);
+      return res.status(502).json({ ok: false, error: `Falha ao criar evento na agenda: ${String(err.message || err)}` });
+    }
+
+    const calendarEventId = String(created?.task?.calendarEventId || '');
+    const upstreamTaskId = String(created?.task?.id || '');
+    if (!calendarEventId) {
+      return res.status(502).json({ ok: false, error: 'Agenda nao confirmou o evento. Solicitacao nao registrada.' });
     }
 
     const requestItem = {
@@ -1058,7 +1068,7 @@ app.post('/api/gaveta/requests', async (req, res) => {
       requestedAt: new Date().toISOString(),
       dueDate,
       calendarEventId,
-      calendarError,
+      calendarError: '',
     };
 
     const nextItems = [...store.items, requestItem].slice(-2000);
